@@ -1,0 +1,36 @@
+<%- include('../partials/admin-header') %>
+
+<div class="admin-table-toolbar">
+  <h2>Perguntas Frequentes (<%= faqs.length %>)</h2>
+  <a href="/admin/faq/novo" class="btn btn-primary btn-sm"><%- icon('plus', 16) %>Nova Pergunta</a>
+</div>
+
+<div class="admin-table-wrap">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th style="width:50%;">Pergunta</th>
+        <th class="sm-table-cell">Categoria</th>
+        <th class="right">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% faqs.forEach(function(f) { %>
+        <tr>
+          <td><span class="line-clamp-1" style="font-weight:500;color:var(--gray-800);"><%= f.question %></span></td>
+          <td class="sm-table-cell"><span class="text-xs text-gray-500"><%= f.category ? f.category.name : '-' %></span></td>
+          <td class="right">
+            <div class="table-actions">
+              <a href="/admin/faq/<%= f._id %>/editar" class="table-icon-btn edit"><%- icon('edit', 14) %></a>
+              <form method="POST" action="/admin/faq/<%= f._id %>/excluir" onsubmit="return confirm('Excluir esta pergunta?');" style="display:inline;">
+                <button type="submit" class="table-icon-btn danger"><%- icon('trash2', 14) %></button>
+              </form>
+            </div>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<%- include('../partials/admin-footer') %>

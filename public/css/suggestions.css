@@ -1,0 +1,44 @@
+/* Sugestões para o Campus */
+.suggestions-page { padding: 2.5rem 1rem; }
+.suggestions-hero { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.5rem; }
+.suggestions-hero h1 { margin:0; font-size:1.75rem; color:var(--gray-800); }
+.suggestions-hero p { color:var(--gray-500); margin:.5rem 0 0; max-width:42rem; line-height:1.55; }
+.suggestions-list { display:flex; flex-direction:column; gap:1rem; }
+.suggestion-card { background:#fff; border:1px solid var(--gray-200); border-radius:.75rem; padding:1.25rem; box-shadow:var(--shadow-sm); }
+.suggestion-card-head { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; }
+.suggestion-card h2 { margin:0; color:var(--gray-800); font-size:1.05rem; }
+.suggestion-description { white-space:pre-line; color:var(--gray-600); font-size:.9rem; line-height:1.6; margin: .75rem 0 1rem; }
+.suggestion-meta { display:flex; flex-wrap:wrap; gap:.75rem; align-items:center; color:var(--gray-500); font-size:.75rem; }
+.suggestion-actions { display:flex; align-items:center; justify-content:space-between; gap:1rem; border-top:1px solid var(--gray-100); padding-top:1rem; }
+.support-button { display:inline-flex; gap:.4rem; align-items:center; border:1px solid var(--green-200); background:var(--green-50); color:var(--green-800); border-radius:.5rem; padding:.45rem .7rem; font-size:.8rem; font-weight:600; cursor:pointer; }
+.support-button:hover, .support-button.supported { background:var(--green-800); color:#fff; border-color:var(--green-800); }
+.support-count { font-size:.8rem; color:var(--gray-500); }
+.suggestion-status { display:inline-flex; align-items:center; gap:.35rem; border-radius:999px; padding:.25rem .55rem; font-size:.75rem; font-weight:600; white-space:nowrap; }
+.suggestion-status.analysis { color:var(--amber-800); background:var(--amber-100); }
+.suggestion-status.planned { color:var(--blue-800); background:var(--blue-100); }
+.suggestion-status.implemented { color:var(--emerald-800); background:var(--emerald-100); }
+.suggestion-status.not_implemented { color:var(--red-800); background:var(--red-100); }
+.status-reason { margin:.75rem 0 0; padding:.7rem .75rem; color:var(--red-700); background:var(--red-50); border-left:3px solid var(--red-500); border-radius:.25rem; font-size:.8rem; line-height:1.45; }
+.suggestion-empty { padding:3rem 1rem; text-align:center; }
+.suggestion-empty svg { color:var(--green-600); margin-bottom:.75rem; }
+.suggestion-empty h3 { margin:0 0 .4rem; color:var(--gray-800); }
+.suggestion-empty p { color:var(--gray-500); margin:0 0 1rem; }
+.suggestion-privacy { display:flex; gap:.75rem; padding:1rem; background:var(--green-50); border:1px solid var(--green-200); border-radius:.5rem; color:var(--green-800); font-size:.82rem; line-height:1.45; }
+.suggestion-privacy svg { flex-shrink:0; margin-top:.1rem; }
+.choice-group { display:flex; flex-direction:column; gap:.5rem; }
+.radio-choice { display:flex; align-items:flex-start; gap:.6rem; padding:.75rem; border:1px solid var(--gray-200); border-radius:.5rem; cursor:pointer; }
+.radio-choice:hover { border-color:var(--green-400); background:var(--green-50); }
+.radio-choice input { margin-top:.2rem; accent-color:var(--green-700); }
+.radio-choice strong,.radio-choice span { display:block; font-size:.875rem; }
+.radio-choice span { color:var(--gray-500); font-size:.75rem; margin-top:.1rem; }
+.admin-suggestion-detail { max-width:48rem; }
+.admin-suggestion-detail h2 { font-size:1rem; margin:0 0 .5rem; color:var(--gray-800); }
+.admin-suggestion-detail p { white-space:pre-line; color:var(--gray-600); line-height:1.55; }
+.admin-suggestion-section { border-top:1px solid var(--gray-100); padding-top:1rem; margin-top:1rem; }
+@media (max-width: 639px) { .suggestions-hero { flex-direction:column; } .suggestions-hero .btn { width:100%; } .suggestion-card-head { flex-direction:column; gap:.65rem; } }
+.dark .suggestion-card { background:var(--bg-card); border-color:var(--border); }
+.dark .suggestion-card h2, .dark .suggestions-hero h1 { color:var(--text-primary); }
+.dark .suggestion-description, .dark .suggestion-meta, .dark .suggestions-hero p, .dark .suggestion-empty p { color:var(--text-secondary); }
+.dark .suggestion-actions, .dark .admin-suggestion-section { border-color:var(--border-light); }
+.dark .radio-choice { border-color:var(--border); }
+.dark .radio-choice:hover { background:#162b1e; border-color:#2d6e3d; }

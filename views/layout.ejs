@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>
+    <%= title %> — Fórum / FAQ IFSul Bagé
+  </title>
+  <script>
+    // Aplica dark antes de qualquer render para evitar flash
+    (function () { var t = localStorage.getItem("theme"); if (t === "dark" || (t == null && window.matchMedia("(prefers-color-scheme: dark)").matches)) document.documentElement.classList.add("dark") })();
+  </script>
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/navbar.css">
+  <link rel="stylesheet" href="/css/home.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/forum.css">
+  <link rel="stylesheet" href="/css/faq.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/suggestions.css">
+</head>
+
+<body>
+  <%- include('partials/navbar') %>
+    <main>
+      <%- body %>
+    </main>
+    <% if (typeof hideFooter==='undefined' || !hideFooter) { %>
+      <%- include('partials/footer') %>
+        <% } %>
+          <script src="/js/main.js"></script>
+</body>
+
+</html>

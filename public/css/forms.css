@@ -1,0 +1,135 @@
+/* ============================================================
+   Páginas de formulário: Login, Registro, Esqueci Senha, Perfil
+   ============================================================ */
+
+.auth-page {
+  min-height: calc(100vh - 4rem);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--gray-50);
+  padding: 3rem 1rem;
+}
+.auth-box { width: 100%; max-width: 28rem; }
+.auth-box.wide { max-width: 32rem; }
+
+.auth-card {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-100);
+  padding: 2rem;
+}
+
+.auth-header { text-align: center; margin-bottom: 2rem; }
+.auth-icon {
+  width: 3.5rem; height: 3.5rem;
+  border-radius: 1rem;
+  background: var(--green-800);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 1rem;
+}
+.auth-icon svg { width: 1.75rem; height: 1.75rem; color: #fff; }
+.auth-title { font-size: 1.5rem; font-weight: 700; color: #111827; margin: 0; }
+.auth-sub { color: var(--gray-500); font-size: 0.875rem; margin: 0.25rem 0 0; }
+
+.auth-header-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
+.auth-back-btn {
+  padding: 0.375rem; border-radius: 0.5rem;
+  background: none; border: none; cursor: pointer;
+  color: var(--gray-500); display: flex;
+}
+.auth-back-btn:hover { background: var(--gray-100); }
+.auth-header-row h1 { font-size: 1.25rem; font-weight: 700; color: #111827; margin: 0; }
+.auth-header-row p { color: var(--gray-500); font-size: 0.75rem; margin: 0; }
+
+.auth-error {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--red-50); color: var(--red-700);
+  border-radius: 0.5rem; font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--red-200);
+}
+.auth-error svg { width: 1rem; height: 1rem; flex-shrink: 0; }
+
+.auth-success {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--green-50); color: var(--green-700);
+  border-radius: 0.5rem; font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--green-200);
+}
+.auth-success svg { width: 1rem; height: 1rem; flex-shrink: 0; }
+
+.auth-form { display: flex; flex-direction: column; gap: 1rem; }
+.auth-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 640px) { .auth-form-grid { grid-template-columns: 1fr 1fr; } }
+.span-2 { grid-column: 1 / -1; }
+
+.auth-forgot { display: flex; justify-content: flex-end; }
+.auth-forgot a { font-size: 0.875rem; color: var(--green-700); font-weight: 500; }
+.auth-forgot a:hover { color: var(--green-800); }
+
+.auth-demo-box {
+  margin-top: 1.25rem;
+  padding: 0.75rem;
+  background: var(--amber-50);
+  border-radius: 0.5rem;
+  border: 1px solid var(--amber-200);
+}
+.auth-demo-box p { font-size: 0.75rem; color: var(--amber-700); font-weight: 500; margin: 0 0 0.5rem; }
+.auth-demo-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.auth-demo-btn {
+  font-size: 0.75rem; padding: 0.375rem 0.75rem;
+  background: #fff; border: 1px solid var(--amber-300); border-radius: 0.5rem;
+  color: var(--amber-800); font-weight: 500; cursor: pointer;
+  text-decoration: none;
+}
+.auth-demo-btn:hover { background: var(--amber-50); }
+
+.auth-footer-text { font-size: 0.875rem; text-align: center; color: var(--gray-500); margin-top: 1.5rem; }
+.auth-footer-text a { color: var(--green-700); font-weight: 500; }
+.auth-footer-text a:hover { color: var(--green-800); }
+
+.auth-terms { font-size: 0.75rem; color: var(--gray-400); text-align: center; margin-top: 1rem; }
+
+.pw-strength { display: flex; gap: 0.25rem; margin-top: 0.25rem; }
+.pw-strength-bar { height: 0.25rem; flex: 1; border-radius: 9999px; background: var(--gray-200); }
+.pw-strength-bar.filled { background: var(--green-500); }
+
+.auth-success-block { text-align: center; padding: 1.5rem 0; }
+.auth-success-icon {
+  width: 3.5rem; height: 3.5rem; border-radius: 9999px;
+  background: var(--green-100);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 1rem;
+}
+.auth-success-icon svg { width: 1.75rem; height: 1.75rem; color: var(--green-600); }
+.auth-success-block h2 { font-weight: 600; color: var(--gray-800); margin: 0 0 0.5rem; }
+.auth-success-block p { color: var(--gray-500); font-size: 0.875rem; margin: 0 0 1.5rem; }
+.auth-success-block a { color: var(--green-700); font-weight: 500; font-size: 0.875rem; }
+.auth-success-block a:hover { color: var(--green-800); }
+
+/* ── Profile page ────────────────────────────────────────────────────── */
+.profile-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; }
+.profile-avatar {
+  width: 4rem; height: 4rem; border-radius: 1rem;
+  background: var(--green-800);
+  display: flex; align-items: center; justify-content: center;
+}
+.profile-avatar svg { width: 2rem; height: 2rem; color: #fff; }
+.profile-name { font-size: 1.5rem; font-weight: 700; color: #111827; margin: 0; }
+.profile-meta { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem; }
+.profile-role-badge {
+  padding: 0.125rem 0.5rem; background: var(--green-100); color: var(--green-800);
+  font-size: 0.75rem; font-weight: 500; border-radius: 9999px;
+  border: 1px solid var(--green-200);
+}
+.profile-status { display: flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; color: var(--green-600); }
+.status-dot { width: 0.375rem; height: 0.375rem; border-radius: 9999px; background: var(--green-500); }
+
+.profile-section-title { font-weight: 600; color: var(--gray-800); margin: 0 0 1.25rem; }

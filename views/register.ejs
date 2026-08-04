@@ -1,0 +1,80 @@
+<div class="auth-page">
+  <div class="auth-box wide">
+    <div class="auth-card">
+      <% if (done) { %>
+        <div class="auth-success-block">
+          <div class="auth-success-icon"><%- icon('checkCircle2', 28) %></div>
+          <h2>Conta criada!</h2>
+          <p>Verifique seu e-mail para ativar a conta antes de entrar.</p>
+          <a href="/login" class="btn btn-primary btn-block">Ir para o Login</a>
+        </div>
+      <% } else { %>
+        <div class="auth-header-row">
+          <a href="/login" class="auth-back-btn"><%- icon('arrowLeft', 16) %></a>
+          <div>
+            <h1>Criar Conta</h1>
+            <p>Preencha os dados para se cadastrar</p>
+          </div>
+        </div>
+
+        <% if (errors.general) { %>
+          <div class="auth-error"><%- icon('alertCircle', 16) %><%= errors.general %></div>
+        <% } %>
+
+        <form class="auth-form-grid" method="POST" action="/register">
+          <div class="field span-2">
+            <label for="name">Nome completo</label>
+            <input class="input <%= errors.name ? 'error' : '' %>" id="name" name="name" placeholder="Seu nome completo" value="<%= form.name || '' %>">
+            <% if (errors.name) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.name %></p><% } %>
+          </div>
+          <div class="field span-2">
+            <label for="email">E-mail institucional</label>
+            <input class="input <%= errors.email ? 'error' : '' %>" id="email" name="email" type="email" placeholder="nome@aluno.ifsul.edu.br" value="<%= form.email || '' %>">
+            <% if (errors.email) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.email %></p><% } %>
+          </div>
+          <div class="field">
+            <label for="loginf">Login</label>
+            <input class="input <%= errors.login ? 'error' : '' %>" id="loginf" name="login" placeholder="nome.sobrenome" value="<%= form.login || '' %>">
+            <% if (errors.login) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.login %></p><% } %>
+          </div>
+          <div class="field">
+            <label for="role">Perfil / Segmento</label>
+            <select class="input <%= errors.role ? 'error' : '' %>" id="role" name="role">
+              <option value="">Selecione...</option>
+              <option value="estudante" <%= form.role === 'estudante' ? 'selected' : '' %>>Estudante</option>
+              <option value="professor" <%= form.role === 'professor' ? 'selected' : '' %>>Professor(a)</option>
+              <option value="staff" <%= form.role === 'staff' ? 'selected' : '' %>>Servidor(a) / Staff</option>
+            </select>
+            <% if (errors.role) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.role %></p><% } %>
+          </div>
+          <div class="field">
+            <label for="pwf">Senha</label>
+            <div class="field-wrap">
+              <input class="input has-right <%= errors.password ? 'error' : '' %>" id="pwf" name="password" type="password" placeholder="Mín. 8 caracteres">
+              <button type="button" class="field-right" data-toggle-password="pwf"><%- icon('eye', 16) %></button>
+            </div>
+            <div class="pw-strength">
+              <div class="pw-strength-bar"></div><div class="pw-strength-bar"></div>
+              <div class="pw-strength-bar"></div><div class="pw-strength-bar"></div>
+            </div>
+            <% if (errors.password) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.password %></p><% } %>
+          </div>
+          <div class="field">
+            <label for="pw2">Confirmar senha</label>
+            <input class="input <%= errors.password2 ? 'error' : '' %>" id="pw2" name="password2" type="password" placeholder="Repita a senha">
+            <% if (errors.password2) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.password2 %></p><% } %>
+          </div>
+
+          <div class="span-2" style="margin-top:0.5rem;">
+            <button type="submit" class="btn btn-primary btn-lg btn-block">
+              <%- icon('userPlus', 16) %>
+              Criar Conta
+            </button>
+          </div>
+        </form>
+        <p class="auth-terms">Ao criar sua conta, você concorda com as diretrizes de uso do sistema acadêmico do IFSul.</p>
+        <p class="auth-footer-text">Já tem conta? <a href="/login">Entrar</a></p>
+      <% } %>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,114 @@
+<div class="container-md" style="padding:2.5rem 1rem;">
+  <div class="breadcrumb">
+    <a href="/forum"><%- icon('arrowLeft', 16) %>Fórum</a>
+    <%- icon('chevronRight', 12, 'chevron') %>
+    <span class="current"><%= topic.title %></span>
+  </div>
+
+  <% if (topic.locked) { %>
+    <div class="notice-box">
+      <%- icon('lock', 16) %>
+      <p>Este tópico foi encerrado pela moderação. Novas respostas não são permitidas.</p>
+    </div>
+  <% } %>
+
+  <div class="topic-main-card">
+    <div class="topic-main-header">
+      <div class="topic-main-header-row">
+        <div style="flex:1;min-width:0;">
+          <h1 class="topic-main-title"><%= topic.title %></h1>
+          <div class="topic-main-tags">
+            <span class="badge badge-white"><%= catLabel(topic.category) %></span>
+            <% topic.tags.forEach(function(tag) { %>
+              <span class="hashtag">#<%= tag %></span>
+            <% }) %>
+          </div>
+        </div>
+        <% if (topic.locked) { %><%- icon('lock', 20) %><% } %>
+      </div>
+    </div>
+    <div class="topic-main-body">
+      <div class="topic-author-row">
+        <div class="topic-author-avatar"><%- icon('user', 16) %></div>
+        <div>
+          <div class="topic-author-name"><%= topic.authorName %></div>
+          <div class="topic-author-date"><%= topic.createdAt.toLocaleDateString('pt-BR') %></div>
+        </div>
+      </div>
+      <p class="topic-content-text"><%= topic.content %></p>
+      <div class="topic-footer-row">
+        <span class="with-icon"><%- icon('messageSquare', 14) %><%= comments.length %> respostas</span>
+        <span><%= topic.views %> visualizações</span>
+        <% if (isAdmin) { %>
+          <div class="topic-admin-actions">
+            <form method="POST" action="/admin/forum/<%= topic._id %>/excluir" style="display:inline;">
+              <button type="submit" class="danger"><%- icon('flag', 14) %>Remover</button>
+            </form>
+            <form method="POST" action="/admin/forum/<%= topic._id %>/toggle-lock" style="display:inline;">
+              <button type="submit" class="warn"><%- icon('lock', 14) %><%= topic.locked ? 'Reabrir' : 'Encerrar' %></button>
+            </form>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <div class="comments-header">
+    <%- icon('messageSquare', 16) %>
+    <h2><%= comments.length %> Respostas</h2>
+    <% if (submitted) { %>
+      <span class="comments-success"><%- icon('checkCircle2', 14) %>Sua resposta foi publicada!</span>
+    <% } %>
+  </div>
+
+  <div style="margin-bottom:1.5rem;">
+    <% comments.forEach(function(c) { %>
+      <% var isOwn = loggedIn && currentUser && c.author.toString() === currentUser.id; %>
+      <div class="comment-card <%= isOwn ? 'own' : '' %>">
+        <div class="comment-top">
+          <div class="comment-author-row">
+            <div class="comment-avatar <%= isOwn ? 'own' : '' %>"><%- icon('user', 16) %></div>
+            <div>
+              <div class="comment-name-row">
+                <span class="name"><%= c.authorName %></span>
+                <span class="comment-role-tag"><%= c.authorRole %></span>
+                <% if (isOwn) { %><span class="comment-own-tag">Você</span><% } %>
+              </div>
+              <div class="comment-date"><%= c.createdAt.toLocaleString('pt-BR') %></div>
+            </div>
+          </div>
+        </div>
+        <p class="comment-text"><%= c.text %></p>
+      </div>
+    <% }) %>
+  </div>
+
+  <% if (!topic.locked) { %>
+    <% if (loggedIn) { %>
+      <div class="reply-box">
+        <h3>Sua Resposta</h3>
+        <form method="POST" action="/forum/topico/<%= topic._id %>/responder">
+          <textarea class="input" name="text" id="reply-text" rows="4" placeholder="Escreva sua resposta aqui. Seja claro e objetivo..." data-char-count="reply-count"></textarea>
+          <% if (replyError) { %><p class="field-error" style="margin-top:0.25rem;"><%- icon('alertCircle', 12) %><%= replyError %></p><% } %>
+          <div class="reply-footer-row">
+            <span class="reply-char-count" id="reply-count">0 caracteres</span>
+            <button type="submit" class="btn btn-primary btn-sm"><%- icon('send', 14) %>Responder</button>
+          </div>
+        </form>
+      </div>
+    <% } else { %>
+      <div class="login-to-reply">
+        <p>Você precisa estar logado para responder.</p>
+        <div class="login-to-reply-actions">
+          <a href="/login" class="btn btn-primary btn-sm"><%- icon('logIn', 16) %>Entrar</a>
+          <a href="/register" class="btn btn-secondary btn-sm">Criar conta</a>
+        </div>
+      </div>
+    <% } %>
+  <% } else { %>
+    <div class="notice-box gray">
+      <%- icon('lock', 16) %>
+      <p>Tópico encerrado — não é possível adicionar respostas.</p>
+    </div>
+  <% } %>
+</div>

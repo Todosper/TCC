@@ -1,0 +1,116 @@
+<header class="navbar">
+  <div class="container">
+    <div class="navbar-inner">
+      <a href="/" class="navbar-logo">
+        <div class="ifsul-mark" aria-hidden="true">
+          <i class="ifsul-mark-red"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <div class="navbar-logo-text">
+          <div class="navbar-logo-title">INSTITUTO FEDERAL</div>
+          <div class="navbar-logo-sub">Sul-rio-grandense · Campus Bagé</div>
+        </div>
+      </a>
+
+      <nav class="navbar-links">
+        <a href="/"
+          class="navbar-link <%= (typeof activePage !== 'undefined' && activePage === 'home') ? 'active' : '' %>">Início</a>
+        <a href="/forum"
+          class="navbar-link <%= (typeof activePage !== 'undefined' && activePage === 'forum') ? 'active' : '' %>">Fórum</a>
+        <a href="/faq"
+          class="navbar-link <%= (typeof activePage !== 'undefined' && activePage === 'faq') ? 'active' : '' %>">FAQ</a>
+        <a href="/sugestoes"
+          class="navbar-link <%= (typeof activePage !== 'undefined' && activePage === 'suggestions') ? 'active' : '' %>">Sugestões</a>
+      </nav>
+
+      <div class="navbar-right">
+        <% if (loggedIn) { %>
+          <% if (isAdmin) { %>
+            <a href="/admin" class="navbar-pill-btn">
+              <%- icon('shield', 16) %>
+                <span>Admin</span>
+            </a>
+            <% } %>
+              <button id="theme-toggle" class="navbar-icon-btn" type="button" title="Modo escuro">
+                <%- icon('moon', 18) %>
+              </button>
+              <div class="relative">
+                <button id="notif-btn" class="navbar-icon-btn" type="button">
+                  <%- icon('bell', 20) %>
+                    <span class="navbar-badge">5</span>
+                </button>
+                <div id="notif-dropdown" class="notif-dropdown">
+                  <div class="notif-header">
+                    <span>Notificações</span>
+                    <button id="notif-close" type="button"><%- icon('x', 16) %></button>
+                  </div>
+                  <div>
+                    <div class="notif-item">
+                      <p>Prof. Ana Lima respondeu seu tópico</p>
+                      <p>Há 2 horas</p>
+                    </div>
+                    <div class="notif-item">
+                      <p>Coordenação adicionou nova resposta</p>
+                      <p>Há 4 horas</p>
+                    </div>
+                    <div class="notif-item">
+                      <p>Novo tópico na categoria Bolsas</p>
+                      <p>Ontem</p>
+                    </div>
+                  </div>
+                  <div class="notif-footer">
+                    <button type="button">Ver todas</button>
+                  </div>
+                </div>
+              </div>
+              <a href="/profile" class="navbar-avatar-btn">
+                <div class="navbar-avatar-icon"><%- icon('user', 16) %></div>
+                <span class="navbar-avatar-name">
+                  <%= isAdmin ? 'Admin' : 'Meu Perfil' %>
+                </span>
+              </a>
+              <a href="/logout" class="navbar-pill-btn"><%- icon('logOut', 16) %></a>
+              <% } else { %>
+                <button id="theme-toggle" class="navbar-icon-btn" type="button" title="Modo escuro">
+                  <%- icon('moon', 18) %>
+                </button>
+                <a href="/login" class="navbar-btn-outline">
+                  <%- icon('logIn', 16) %>
+                    Entrar
+                </a>
+                <a href="/register" class="navbar-btn-white">
+                  <%- icon('userPlus', 16) %>
+                    Cadastrar
+                </a>
+                <% } %>
+      </div>
+
+      <button id="mobile-menu-toggle" class="navbar-mobile-toggle" type="button">
+        <%- icon('menu', 24) %>
+      </button>
+    </div>
+  </div>
+
+  <div id="mobile-menu" class="navbar-mobile-menu">
+    <a href="/"
+      class="navbar-mobile-link <%= (typeof activePage !== 'undefined' && activePage === 'home') ? 'active' : '' %>">Início</a>
+    <a href="/forum"
+      class="navbar-mobile-link <%= (typeof activePage !== 'undefined' && activePage === 'forum') ? 'active' : '' %>">Fórum</a>
+    <a href="/faq"
+      class="navbar-mobile-link <%= (typeof activePage !== 'undefined' && activePage === 'faq') ? 'active' : '' %>">FAQ</a>
+    <a href="/sugestoes"
+      class="navbar-mobile-link <%= (typeof activePage !== 'undefined' && activePage === 'suggestions') ? 'active' : '' %>">Sugestões</a>
+    <div class="navbar-mobile-divider">
+      <% if (loggedIn) { %>
+        <% if (isAdmin) { %>
+          <a href="/admin" class="navbar-mobile-link navbar-mobile-link-icon"><%- icon('shield', 16) %>Painel Admin</a>
+          <% } %>
+            <a href="/profile" class="navbar-mobile-link navbar-mobile-link-icon"><%- icon('user', 16) %>Meu Perfil</a>
+            <a href="/logout" class="navbar-mobile-link navbar-mobile-link-icon"><%- icon('logOut', 16) %>Sair</a>
+            <% } else { %>
+              <a href="/login" class="navbar-mobile-link navbar-mobile-link-icon"><%- icon('logIn', 16) %>Entrar</a>
+              <a href="/register" class="navbar-mobile-link navbar-mobile-link-icon navbar-mobile-cta"><%-
+                  icon('userPlus', 16) %>Criar Conta</a>
+              <% } %>
+    </div>
+  </div>
+</header>

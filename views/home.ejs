@@ -1,0 +1,133 @@
+<% var activePage = 'home'; %>
+
+<section class="hero">
+  <div class="container">
+    <div class="hero-layout">
+      <div class="hero-content">
+        <h1 class="hero-title">Informação que aproxima o campus.</h1>
+        <p class="hero-subtitle">Encontre orientações, compartilhe conhecimentos e acompanhe as conversas da comunidade do IFSul Bagé.</p>
+        <div class="hero-actions">
+          <a href="/forum" class="btn btn-lg btn-primary">
+            <%- icon('messageSquare', 20) %>
+            Acessar o Fórum
+          </a>
+          <a href="/faq" class="btn btn-lg btn-outline-light">
+            <%- icon('helpCircle', 20) %>
+            Ver FAQ
+          </a>
+        </div>
+      </div>
+      <div class="hero-campus-mark" aria-hidden="true">
+        <div class="ifsul-mark ifsul-mark-large">
+          <i class="ifsul-mark-red"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <div class="hero-campus-name"><strong>INSTITUTO<br>FEDERAL</strong><span>Sul-rio-grandense</span><em>Campus Bagé</em></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="container quick-access">
+  <div class="quick-grid">
+    <a href="/forum" class="quick-card qc-green">
+      <div class="quick-card-icon"><%- icon('messageSquare', 20) %></div>
+      <div>
+        <div class="quick-card-label">Fórum de Discussões</div>
+        <div class="quick-card-desc">Crie tópicos e participe de debates</div>
+      </div>
+    </a>
+    <a href="/faq" class="quick-card qc-blue">
+      <div class="quick-card-icon"><%- icon('helpCircle', 20) %></div>
+      <div>
+        <div class="quick-card-label">Perguntas Frequentes</div>
+        <div class="quick-card-desc">Respostas para dúvidas comuns</div>
+      </div>
+    </a>
+    <a href="/register" class="quick-card qc-purple">
+      <div class="quick-card-icon"><%- icon('userPlus', 20) %></div>
+      <div>
+        <div class="quick-card-label">Criar Conta</div>
+        <div class="quick-card-desc">Junte-se à comunidade acadêmica</div>
+      </div>
+    </a>
+  </div>
+</section>
+
+<section class="container home-main">
+  <div class="home-grid">
+    <!-- Tópicos recentes -->
+    <div>
+      <div class="section-header">
+        <h2 class="section-title">Tópicos Recentes</h2>
+        <a href="/forum" class="section-link">Ver todos <%- icon('chevronRight', 16) %></a>
+      </div>
+
+      <div>
+        <% recentTopics.forEach(function(t) { %>
+          <a href="/forum/topico/<%= t._id %>" class="topic-row">
+            <div class="topic-icon <%= t.locked ? 'locked' : '' %>">
+              <%- t.locked ? icon('lock', 16) : icon('messageCircle', 16) %>
+            </div>
+            <div class="topic-row-body">
+              <div class="topic-row-title-line">
+                <span class="topic-row-title"><%= t.title %></span>
+                <% if (t.isRecent) { %><span class="tag-new">Novo</span><% } %>
+              </div>
+              <div class="topic-row-meta">
+                <span class="badge <%= catCls(t.category) %>"><%= catLabel(t.category) %></span>
+                <span><%= t.authorName %></span>
+                <span class="with-icon"><%- icon('messageSquare', 12) %><%= t.replies || 0 %></span>
+                <span><%= t.createdAt.toLocaleDateString('pt-BR') %></span>
+              </div>
+            </div>
+          </a>
+        <% }) %>
+      </div>
+
+      <div style="margin-top:1rem;">
+        <a href="/forum" class="btn btn-outline">Ver todos os tópicos</a>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar-stack">
+      <div class="card card-pad">
+        <div class="section-header" style="margin-bottom:1rem;">
+          <h2 style="font-size:1rem;font-weight:600;color:var(--gray-800);margin:0;">Dúvidas Frequentes</h2>
+          <a href="/faq" class="section-link" style="font-size:0.75rem;">Ver FAQ <%- icon('chevronRight', 12) %></a>
+        </div>
+        <div>
+          <% faqs.forEach(function(f) { %>
+            <a href="/faq" class="faq-mini-item">
+              <%- icon('helpCircle', 16) %>
+              <span><%= f.question %></span>
+            </a>
+          <% }) %>
+        </div>
+      </div>
+
+      <div class="about-card">
+        <h3>Sobre o Sistema</h3>
+        <p>Plataforma para a comunidade do IFSul Bagé centralizar dúvidas, debater temas acadêmicos e compartilhar informações.</p>
+        <div class="about-stats">
+          <div class="about-stat">
+            <div class="about-stat-value"><%= stats.userCount %></div>
+            <div class="about-stat-label">Membros</div>
+          </div>
+          <div class="about-stat">
+            <div class="about-stat-value"><%= stats.topicCount %></div>
+            <div class="about-stat-label">Tópicos</div>
+          </div>
+          <div class="about-stat">
+            <div class="about-stat-value"><%= stats.commentCount %></div>
+            <div class="about-stat-label">Respostas</div>
+          </div>
+          <div class="about-stat">
+            <div class="about-stat-value"><%= stats.faqCount %></div>
+            <div class="about-stat-label">FAQs</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

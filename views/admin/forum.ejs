@@ -1,0 +1,50 @@
+<%- include('../partials/admin-header') %>
+
+<div class="admin-table-toolbar">
+  <h2>Moderação do Fórum (<%= topics.length %> tópicos)</h2>
+</div>
+
+<div class="admin-table-wrap">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Tópico</th>
+        <th class="md-table-cell">Autor</th>
+        <th class="sm-table-cell">Status</th>
+        <th class="right">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% topics.forEach(function(t) { %>
+        <tr>
+          <td>
+            <div class="line-clamp-1" style="font-weight:500;color:var(--gray-800);font-size:0.875rem;"><%= t.title %></div>
+            <span class="badge <%= catCls(t.category) %>" style="margin-top:0.25rem;"><%= catLabel(t.category) %></span>
+          </td>
+          <td class="md-table-cell"><span class="text-xs text-gray-500"><%= t.authorName %></span></td>
+          <td class="sm-table-cell">
+            <% if (t.locked) { %>
+              <span class="status-text locked"><%- icon('lock', 12) %>Encerrado</span>
+            <% } else { %>
+              <span class="status-text active"><%- icon('checkCircle2', 12) %>Ativo</span>
+            <% } %>
+          </td>
+          <td class="right">
+            <div class="table-actions">
+              <form method="POST" action="/admin/forum/<%= t._id %>/toggle-lock" style="display:inline;">
+                <button type="submit" class="table-icon-btn <%= t.locked ? 'ok' : 'warn' %>">
+                  <%- t.locked ? icon('unlock', 14) : icon('lock', 14) %>
+                </button>
+              </form>
+              <form method="POST" action="/admin/forum/<%= t._id %>/excluir" onsubmit="return confirm('Excluir este tópico?');" style="display:inline;">
+                <button type="submit" class="table-icon-btn danger"><%- icon('trash2', 14) %></button>
+              </form>
+            </div>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<%- include('../partials/admin-footer') %>

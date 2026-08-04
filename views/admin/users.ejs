@@ -1,0 +1,97 @@
+<%- include('../partials/admin-header') %>
+
+  <div class="admin-table-toolbar">
+    <h2>Usuários (<%= users.length %>)</h2>
+    <form class="admin-search-box" method="GET" action="/admin/users">
+      <%- icon('search', 16) %>
+        <input type="text" name="q" value="<%= query %>" placeholder="Buscar por nome ou e-mail..."
+          onchange="this.form.submit()">
+    </form>
+  </div>
+
+  <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Usuário</th>
+          <th class="md-table-cell">Perfil</th>
+          <th class="sm-table-cell">Curador</th>
+          <th class="sm-table-cell">Status</th>
+          <th class="right">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% users.forEach(function(u) { %>
+          <tr>
+            <td>
+              <div class="table-user-cell">
+                <div class="table-user-avatar"><%- icon('user', 14) %></div>
+                <div>
+                  <div class="table-user-name">
+                    <%= u.name %>
+                      <%= u.isAdmin ? ' ★' : '' %>
+                  </div>
+                  <div class="table-user-email">
+                    <%= u.email %>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td class="md-table-cell">
+              <span class="text-xs text-gray-500">
+                <%= u.roleLabel() %>
+              </span>
+            </td>
+            <td class="sm-table-cell">
+              <% if (u.isAdmin) { %>
+                <span class="status-pill active"><span class="dot"></span>Admin</span>
+                <% } else if (u.isCurator) { %>
+                  <span class="status-pill active"><span class="dot"></span>Sim</span>
+                  <% } else { %>
+                    <span class="status-pill" style="background:var(--gray-100);color:var(--gray-500);">
+                      <span class="dot" style="background:var(--gray-400);"></span>Não
+                    </span>
+                    <% } %>
+            </td>
+            <td class="sm-table-cell">
+              <span class="status-pill <%= u.status === 'ativo' ? 'active' : 'blocked' %>">
+                <span class="dot"></span>
+                <%= u.status==='ativo' ? 'Ativo' : 'Bloqueado' %>
+              </span>
+            </td>
+            <td class="right">
+              <div class="table-actions">
+                <!-- Toggle curador (só para não-admins) -->
+                <% if (!u.isAdmin) { %>
+                  <form method="POST" action="/admin/users/<%= u._id %>/toggle-curator" style="display:inline;"
+                    title="<%= u.isCurator ? 'Remover permissão de curador' : 'Dar permissão de curador' %>">
+                    <button type="submit" class="table-icon-btn <%= u.isCurator ? 'warn' : 'ok' %>">
+                      <%- icon('star', 14) %>
+                    </button>
+                  </form>
+                  <% } %>
+                    <!-- Toggle status -->
+                    <form method="POST" action="/admin/users/<%= u._id %>/toggle-status" style="display:inline;">
+                      <button type="submit" class="table-icon-btn <%= u.status === 'ativo' ? 'warn' : 'ok' %>">
+                        <%- u.status==='ativo' ? icon('lock', 14) : icon('unlock', 14) %>
+                      </button>
+                    </form>
+                    <!-- Excluir -->
+                    <form method="POST" action="/admin/users/<%= u._id %>/excluir"
+                      onsubmit="return confirm('Excluir este usuário?');" style="display:inline;">
+                      <button type="submit" class="table-icon-btn danger"><%- icon('trash2', 14) %></button>
+                    </form>
+              </div>
+            </td>
+          </tr>
+          <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="padding:1rem;font-size:0.75rem;color:var(--gray-400);">
+    ★ = Administrador &nbsp;|&nbsp;
+    <%- icon('star', 12) %> = Curador
+  </div>
+
+  <%- include('../partials/admin-footer') %>
