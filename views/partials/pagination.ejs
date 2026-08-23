@@ -1,0 +1,25 @@
+<% /*
+  Partial de paginação reutilizável.
+  Espera receber:
+    - page: número da página atual (1-based)
+    - totalPages: total de páginas
+    - baseQuery: string de query já montada (sem "page"), ex.: "cat=duvidas&q=prova"
+                 (pode ser "" se não houver outros filtros)
+    - basePath: caminho da rota, ex.: "/forum" ou "/admin/users"
+*/ %>
+<% if (totalPages > 1) { %>
+  <div class="pagination">
+    <% var sep = baseQuery ? baseQuery + '&' : ''; %>
+    <% if (page > 1) { %>
+      <a href="<%= basePath %>?<%= sep %>page=<%= page - 1 %>" class="btn btn-outline btn-sm">← Anterior</a>
+    <% } else { %>
+      <span class="btn btn-outline btn-sm" style="opacity:0.4;pointer-events:none;">← Anterior</span>
+    <% } %>
+    <span class="pagination-info">Página <%= page %> de <%= totalPages %></span>
+    <% if (page < totalPages) { %>
+      <a href="<%= basePath %>?<%= sep %>page=<%= page + 1 %>" class="btn btn-outline btn-sm">Próxima →</a>
+    <% } else { %>
+      <span class="btn btn-outline btn-sm" style="opacity:0.4;pointer-events:none;">Próxima →</span>
+    <% } %>
+  </div>
+<% } %>

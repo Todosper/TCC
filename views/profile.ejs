@@ -1,0 +1,87 @@
+<div class="container-md" style="padding:2.5rem 1rem;">
+  <div class="profile-header">
+    <div class="profile-avatar"><%- icon('user', 32) %></div>
+    <div>
+      <h1 class="profile-name"><%= user.name %></h1>
+      <div class="profile-meta">
+        <span class="profile-role-badge"><%= user.roleLabel() %></span>
+        <span class="profile-status">
+          <span class="status-dot"></span>
+          Conta ativa
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs" style="margin-bottom:1.5rem;">
+    <a href="/profile?tab=info" class="tab-btn <%= tab === 'info' ? 'active' : '' %>">Meus Dados</a>
+    <a href="/profile?tab=pw" class="tab-btn <%= tab === 'pw' ? 'active' : '' %>">Alterar Senha</a>
+  </div>
+
+  <% if (tab === 'info') { %>
+    <div class="card card-pad-lg">
+      <h2 class="profile-section-title">Informações Pessoais</h2>
+      <% if (saved) { %>
+        <div class="auth-success"><%- icon('checkCircle2', 16) %>Dados salvos com sucesso!</div>
+      <% } %>
+      <form method="POST" action="/profile/info" class="auth-form-grid">
+        <%- include('partials/csrf-field') %>
+        <div class="field span-2">
+          <label>Nome completo</label>
+          <input class="input" name="name" value="<%= user.name %>">
+        </div>
+        <div class="field span-2">
+          <label>E-mail</label>
+          <input class="input" name="email" type="email" value="<%= user.email %>">
+        </div>
+        <div class="field">
+          <label>Perfil</label>
+          <select class="input" disabled style="background:var(--gray-50);color:var(--gray-500);">
+            <option><%= user.roleLabel() %></option>
+          </select>
+        </div>
+        <div class="span-2" style="margin-top:0.5rem;">
+          <button type="submit" class="btn btn-primary"><%- icon('check', 16) %>Salvar Alterações</button>
+        </div>
+      </form>
+    </div>
+  <% } %>
+
+  <% if (tab === 'pw') { %>
+    <div class="card card-pad-lg">
+      <h2 class="profile-section-title">Alterar Senha</h2>
+      <% if (pwSaved) { %>
+        <div class="auth-success"><%- icon('checkCircle2', 16) %>Senha alterada com sucesso!</div>
+      <% } %>
+      <form method="POST" action="/profile/senha" class="auth-form" style="max-width:24rem;">
+        <%- include('partials/csrf-field') %>
+        <div class="field">
+          <label>Senha atual</label>
+          <div class="field-wrap">
+            <input class="input has-right <%= errors.current ? 'error' : '' %>" name="current" id="pw-current" type="password" placeholder="••••••••">
+            <button type="button" class="field-right" data-toggle-password="pw-current"><%- icon('eye', 16) %></button>
+          </div>
+          <% if (errors.current) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.current %></p><% } %>
+        </div>
+        <div class="field">
+          <label>Nova senha</label>
+          <input class="input <%= errors.next ? 'error' : '' %>" name="next" type="password" placeholder="Mín. 8 caracteres">
+          <% if (errors.next) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.next %></p><% } %>
+        </div>
+        <div class="field">
+          <label>Confirmar nova senha</label>
+          <input class="input <%= errors.confirm ? 'error' : '' %>" name="confirm" type="password" placeholder="Repita a nova senha">
+          <% if (errors.confirm) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.confirm %></p><% } %>
+        </div>
+        <button type="submit" class="btn btn-primary">Alterar Senha</button>
+      </form>
+    </div>
+  <% } %>
+
+  <div style="margin-top:1.5rem;">
+    <form method="POST" action="/logout">
+      <%- include('partials/csrf-field') %>
+      <button type="submit" class="btn btn-outline"><%- icon('logOut', 16) %>Sair da Conta</button>
+    </form>
+  </div>
+</div>

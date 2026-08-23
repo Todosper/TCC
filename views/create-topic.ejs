@@ -1,0 +1,48 @@
+<div class="container-md" style="padding:2.5rem 1rem;">
+  <div class="auth-header-row">
+    <a href="/forum" class="auth-back-btn"><%- icon('arrowLeft', 16) %></a>
+    <div>
+      <h1>Criar Novo Tópico</h1>
+      <p>Compartilhe uma dúvida ou informação com a comunidade</p>
+    </div>
+  </div>
+
+  <div class="notice-box">
+    <%- icon('alertCircle', 16) %>
+    <p>O conteúdo deve ser relacionado ao ambiente escolar e acadêmico do IFSul Bagé. Tópicos fora do tema poderão ser removidos pela moderação.</p>
+  </div>
+
+  <% if (errors.general) { %>
+    <div class="auth-error"><%- icon('alertCircle', 16) %><%= errors.general %></div>
+  <% } %>
+
+  <form method="POST" action="/forum/novo" class="card card-pad-lg create-form-card">
+    <%- include('partials/csrf-field') %>
+    <div class="field">
+      <label>Título do tópico</label>
+      <input class="input <%= errors.title ? 'error' : '' %>" name="title" id="topic-title" placeholder="Descreva sua dúvida em poucas palavras" value="<%= form.title || '' %>" data-char-count="title-count">
+      <p class="field-hint" id="title-count">0/120 caracteres</p>
+      <% if (errors.title) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.title %></p><% } %>
+    </div>
+    <div class="field">
+      <label>Categoria</label>
+      <select class="input <%= errors.category ? 'error' : '' %>" name="category">
+        <option value="">Selecione...</option>
+        <% categories.forEach(function(c) { %>
+          <option value="<%= c.id %>" <%= form.category === c.id ? 'selected' : '' %>><%= c.label %></option>
+        <% }) %>
+      </select>
+      <% if (errors.category) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.category %></p><% } %>
+    </div>
+    <div class="field">
+      <label>Descrição / Conteúdo</label>
+      <textarea class="input <%= errors.body ? 'error' : '' %>" name="body" rows="8" placeholder="Descreva detalhadamente sua dúvida ou o assunto que deseja discutir..."><%= form.body || '' %></textarea>
+      <% if (errors.body) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.body %></p><% } %>
+    </div>
+
+    <div class="flex gap-3">
+      <button type="submit" class="btn btn-primary btn-lg"><%- icon('send', 16) %>Publicar Tópico</button>
+      <a href="/forum" class="btn btn-outline">Cancelar</a>
+    </div>
+  </form>
+</div>

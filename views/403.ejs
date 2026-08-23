@@ -1,0 +1,10 @@
+<div class="auth-page">
+  <div class="auth-box" style="text-align:center;">
+    <div class="auth-icon" style="margin:0 auto 1rem;background:var(--red-100);">
+      <span style="font-size:1.5rem;">🔒</span>
+    </div>
+    <h1 class="auth-title"><%= typeof title !== 'undefined' && title === 'Sessão expirada' ? 'Sessão expirada' : 'Acesso negado' %></h1>
+    <p class="auth-sub" style="margin-bottom:1.5rem;"><%= typeof message !== 'undefined' ? message : 'Você não tem permissão para acessar esta área.' %></p>
+    <a href="/" class="btn btn-primary">Voltar ao Início</a>
+  </div>
+</div>

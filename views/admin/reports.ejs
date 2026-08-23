@@ -1,0 +1,73 @@
+<%- include('../partials/admin-header') %>
+<div class="admin-table-toolbar">
+  <h2>Denúncias (<%= reports.length %>)</h2>
+  <div class="tabs">
+    <a class="tab-btn <%= filter === 'pending' ? 'active' : '' %>" href="/admin/denuncias?filter=pending">Pendentes</a>
+    <a class="tab-btn <%= filter === 'reviewed' ? 'active' : '' %>" href="/admin/denuncias?filter=reviewed">Revisadas</a>
+    <a class="tab-btn <%= filter === 'dismissed' ? 'active' : '' %>" href="/admin/denuncias?filter=dismissed">Descartadas</a>
+    <a class="tab-btn <%= filter === 'all' ? 'active' : '' %>" href="/admin/denuncias?filter=all">Todas</a>
+  </div>
+</div>
+
+<% var reasonLabels = { spam: 'Spam / propaganda', offensive: 'Conteúdo ofensivo', personal_info: 'Dados pessoais expostos', off_topic: 'Fora do contexto', other: 'Outro motivo' }; %>
+
+<div class="admin-table-wrap">
+  <table class="admin-table">
+    <thead><tr><th>Conteúdo denunciado</th><th class="sm-table-cell">Motivo</th><th class="md-table-cell">Status</th><th class="right">Ações</th></tr></thead>
+    <tbody>
+      <% reports.forEach(function(r) { %>
+        <tr>
+          <td>
+            <% if (r.targetType === 'comment' && r.comment) { %>
+              <span class="badge badge-gray" style="margin-right:0.375rem;">Comentário</span>
+              <div class="line-clamp-1" style="font-weight:500;color:var(--gray-800);"><%= r.comment.text %></div>
+            <% } else if (r.topic) { %>
+              <span class="badge badge-gray" style="margin-right:0.375rem;">Tópico</span>
+              <div class="line-clamp-1" style="font-weight:500;color:var(--gray-800);"><%= r.topic.title %></div>
+            <% } else { %>
+              <span class="text-xs text-gray-500">Conteúdo original já foi removido</span>
+            <% } %>
+            <% if (r.details) { %><div class="text-xs text-gray-500" style="margin-top:0.25rem;">"<%= r.details %>"</div><% } %>
+            <span class="text-xs text-gray-500"><%= r.createdAt.toLocaleDateString('pt-BR') %></span>
+          </td>
+          <td class="sm-table-cell"><%= reasonLabels[r.reason] || r.reason %></td>
+          <td class="md-table-cell">
+            <span class="badge <%= r.status === 'reviewed' ? 'badge-emerald' : r.status === 'dismissed' ? 'badge-gray' : 'badge-amber' %>">
+              <%= r.status === 'reviewed' ? 'Revisada' : r.status === 'dismissed' ? 'Descartada' : 'Pendente' %>
+            </span>
+          </td>
+          <td class="right">
+            <div class="table-actions">
+              <% if (r.topic) { %>
+                <a class="table-icon-btn edit" href="/forum/topico/<%= r.topic._id %>" title="Ver no fórum" target="_blank"><%- icon('eye', 14) %></a>
+              <% } %>
+              <% if (r.status === 'pending') { %>
+                <form method="POST" action="/admin/denuncias/<%= r._id %>/status" style="display:inline;">
+                  <%- include('../partials/csrf-field') %>
+                  <input type="hidden" name="status" value="reviewed">
+                  <button class="table-icon-btn edit" title="Marcar como revisada"><%- icon('checkCircle2', 14) %></button>
+                </form>
+                <form method="POST" action="/admin/denuncias/<%= r._id %>/status" style="display:inline;">
+                  <%- include('../partials/csrf-field') %>
+                  <input type="hidden" name="status" value="dismissed">
+                  <button class="table-icon-btn danger" title="Descartar denúncia"><%- icon('x', 14) %></button>
+                </form>
+              <% } %>
+            </div>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<% if (!reports.length) { %>
+  <div class="card suggestion-empty" style="margin-top:1rem">
+    <%- icon('flag', 40) %>
+    <h3>Nenhuma denúncia nesta lista</h3>
+    <p>Denúncias enviadas por usuários sobre tópicos ou comentários aparecerão aqui.</p>
+  </div>
+<% } %>
+
+<%- include('../partials/pagination') %>
+<%- include('../partials/admin-footer') %>

@@ -1,0 +1,85 @@
+<%- include('../partials/admin-header') %>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon blue"><%- icon('users', 16) %></div>
+    <div class="stat-value"><%= stats.userCount %></div>
+    <div class="stat-label">Usuários</div>
+    <div class="stat-delta">+<%= stats.newUsersThisMonth %> este mês</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green"><%- icon('messageSquare', 16) %></div>
+    <div class="stat-value"><%= stats.topicCount %></div>
+    <div class="stat-label">Tópicos</div>
+    <div class="stat-delta">+<%= stats.newTopicsThisWeek %> esta semana</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon purple"><%- icon('messageCircle', 16) %></div>
+    <div class="stat-value"><%= stats.commentCount %></div>
+    <div class="stat-label">Respostas</div>
+    <div class="stat-delta">+<%= stats.newCommentsThisWeek %> esta semana</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon amber"><%- icon('helpCircle', 16) %></div>
+    <div class="stat-value"><%= stats.faqCount %></div>
+    <div class="stat-label">FAQs</div>
+    <div class="stat-delta">+<%= stats.newFaqsThisWeek %> esta semana</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon red"><%- icon('flag', 16) %></div>
+    <div class="stat-value"><%= stats.pendingSuggestionCount %></div>
+    <div class="stat-label">Sugestões</div>
+    <div class="stat-delta">Pendentes</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon red"><%- icon('flag', 16) %></div>
+    <div class="stat-value"><%= stats.pendingReportCount %></div>
+    <div class="stat-label">Denúncias</div>
+    <div class="stat-delta">Pendentes</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon gray"><%- icon('lock', 16) %></div>
+    <div class="stat-value"><%= stats.blockedCount %></div>
+    <div class="stat-label">Bloqueados</div>
+    <div class="stat-delta">Usuários</div>
+  </div>
+</div>
+
+<div class="admin-2col">
+  <div class="admin-card">
+    <h2>Atividade Recente</h2>
+    <% recentTopics.forEach(function(t) { %>
+      <div class="activity-item">
+        <div class="activity-icon" style="background:var(--green-100);color:var(--green-600);"><%- icon('plus', 14) %></div>
+        <div class="activity-body">
+          <div class="activity-action">Novo tópico criado</div>
+          <div class="activity-detail"><%= t.title %></div>
+        </div>
+        <span class="activity-time"><%= t.createdAt.toLocaleDateString('pt-BR') %></span>
+      </div>
+    <% }) %>
+    <% recentUsers.forEach(function(u) { %>
+      <div class="activity-item">
+        <div class="activity-icon" style="background:var(--purple-100);color:var(--purple-600);"><%- icon('userPlus', 14) %></div>
+        <div class="activity-body">
+          <div class="activity-action">Novo usuário registrado</div>
+          <div class="activity-detail"><%= u.name %> — <%= u.roleLabel() %></div>
+        </div>
+        <span class="activity-time"><%= u.createdAt.toLocaleDateString('pt-BR') %></span>
+      </div>
+    <% }) %>
+  </div>
+
+  <div class="admin-card">
+    <h2>Ações Rápidas</h2>
+    <div class="quick-actions-grid">
+      <a href="/admin/faq/novo" class="quick-action-btn qa-green"><%- icon('plus', 16) %><span>Adicionar FAQ</span></a>
+      <a href="/admin/forum" class="quick-action-btn qa-blue"><%- icon('shield', 16) %><span>Moderar Tópicos</span></a>
+      <a href="/admin/users" class="quick-action-btn qa-purple"><%- icon('users', 16) %><span>Gerenciar Usuários</span></a>
+      <a href="/admin/sugestoes" class="quick-action-btn qa-red"><%- icon('lightbulb', 16) %><span>Moderar Sugestões (<%= stats.pendingSuggestionCount %>)</span></a>
+      <a href="/admin/denuncias" class="quick-action-btn qa-red"><%- icon('flag', 16) %><span>Ver Denúncias (<%= stats.pendingReportCount %>)</span></a>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/admin-footer') %>

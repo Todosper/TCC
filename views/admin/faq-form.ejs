@@ -1,0 +1,39 @@
+<%- include('../partials/admin-header') %>
+
+<div class="auth-header-row">
+  <a href="/admin/faq" class="auth-back-btn"><%- icon('arrowLeft', 16) %></a>
+  <div>
+    <h1 style="font-size:1.125rem;"><%= faq && faq._id ? 'Editar Pergunta' : 'Nova Pergunta' %></h1>
+  </div>
+</div>
+
+<form method="POST" action="<%= faq && faq._id ? '/admin/faq/' + faq._id + '/editar' : '/admin/faq/novo' %>" class="admin-form-card">
+  <%- include('../partials/csrf-field') %>
+  <div class="field">
+    <label>Pergunta</label>
+    <input class="input <%= errors.question ? 'error' : '' %>" name="question" value="<%= faq ? faq.question : '' %>" placeholder="Digite a pergunta">
+    <% if (errors.question) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.question %></p><% } %>
+  </div>
+  <div class="field">
+    <label>Categoria</label>
+    <select class="input <%= errors.category ? 'error' : '' %>" name="category">
+      <option value="">Selecione...</option>
+      <% categories.forEach(function(c) { %>
+        <% var selectedId = faq && faq.category ? (faq.category._id || faq.category).toString() : ''; %>
+        <option value="<%= c._id %>" <%= selectedId === c._id.toString() ? 'selected' : '' %>><%= c.name %></option>
+      <% }) %>
+    </select>
+    <% if (errors.category) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.category %></p><% } %>
+  </div>
+  <div class="field">
+    <label>Resposta</label>
+    <textarea class="input <%= errors.answer ? 'error' : '' %>" name="answer" rows="6" placeholder="Digite a resposta"><%= faq ? faq.answer : '' %></textarea>
+    <% if (errors.answer) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.answer %></p><% } %>
+  </div>
+  <div class="flex gap-3">
+    <button type="submit" class="btn btn-primary"><%- icon('check', 16) %>Salvar</button>
+    <a href="/admin/faq" class="btn btn-outline">Cancelar</a>
+  </div>
+</form>
+
+<%- include('../partials/admin-footer') %>

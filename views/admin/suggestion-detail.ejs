@@ -1,0 +1,17 @@
+<%- include('../partials/admin-header') %>
+<div class="admin-form-card admin-suggestion-detail">
+  <div><span class="badge <%= suggestion.moderationStatus === 'approved' ? 'badge-emerald' : suggestion.moderationStatus === 'rejected' ? 'badge-red' : 'badge-amber' %>"><%= suggestion.moderationStatus === 'approved' ? 'Aprovada' : suggestion.moderationStatus === 'rejected' ? 'Rejeitada' : 'Pendente de aprovação' %></span><h2 style="margin-top:.75rem"><%= suggestion.title %></h2><p><%= suggestion.description %></p></div>
+  <div class="admin-suggestion-section"><strong class="text-sm">Autor para moderação</strong><p class="text-sm"><%= suggestion.authorName %> <span class="text-gray-500">· <%= suggestion.isAnonymous ? 'publicação anônima' : 'publicação identificada' %></span></p></div>
+  <% if (suggestion.moderationStatus === 'pending') { %>
+    <div class="admin-suggestion-section"><form method="POST" action="/admin/sugestoes/<%= suggestion._id %>/aprovar" style="display:inline"><%- include('../partials/csrf-field') %><button class="btn btn-primary" type="submit"><%- icon('check', 16) %>Aprovar e publicar</button></form></div>
+    <div class="admin-suggestion-section"><form method="POST" action="/admin/sugestoes/<%= suggestion._id %>/rejeitar" class="field"><%- include('../partials/csrf-field') %><label for="reason">Motivo da rejeição <span class="text-gray-400">(opcional)</span></label><textarea id="reason" name="reason" class="input" rows="3" maxlength="1000" placeholder="Informe o motivo, se necessário."></textarea><button class="btn btn-danger" type="submit">Rejeitar sugestão</button></form></div>
+  <% } %>
+  <% if (suggestion.moderationStatus === 'approved') { %>
+    <div class="admin-suggestion-section"><form method="POST" action="/admin/sugestoes/<%= suggestion._id %>/status" class="field"><%- include('../partials/csrf-field') %><label for="status">Andamento público</label><select class="input" id="status" name="status"><option value="analysis" <%= suggestion.status === 'analysis' ? 'selected' : '' %> >🟡 Em análise</option><option value="planned" <%= suggestion.status === 'planned' ? 'selected' : '' %>>🔵 Planejada</option><option value="implemented" <%= suggestion.status === 'implemented' ? 'selected' : '' %>>🟢 Implementada</option><option value="not_implemented" <%= suggestion.status === 'not_implemented' ? 'selected' : '' %>>🔴 Não será implementada</option></select><label for="statusReason">Justificativa para “Não será implementada”</label><textarea id="statusReason" name="statusReason" class="input <%= errors.statusReason ? 'error' : '' %>" rows="3" maxlength="1000"><%= suggestion.statusReason || '' %></textarea><% if (errors.statusReason) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.statusReason %></p><% } %><button class="btn btn-primary" type="submit">Salvar andamento</button></form></div>
+  <% } %>
+  <% if (suggestion.moderationStatus === 'rejected' && suggestion.rejectionReason) { %>
+    <div class="admin-suggestion-section"><strong class="text-sm">Motivo informado</strong><p class="text-sm"><%= suggestion.rejectionReason %></p></div>
+  <% } %>
+  <div class="admin-suggestion-section"><form method="POST" action="/admin/sugestoes/<%= suggestion._id %>/excluir" onsubmit="return confirm('Excluir esta sugestão definitivamente?');"><%- include('../partials/csrf-field') %><button class="btn btn-danger" type="submit"><%- icon('trash2', 16) %>Excluir sugestão</button></form></div>
+</div>
+<%- include('../partials/admin-footer') %>

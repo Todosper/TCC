@@ -1,0 +1,71 @@
+<% var activePage = 'faq'; %>
+<div class="container-sm" style="padding:2.5rem 1rem;">
+  <div class="faq-header">
+    <div class="faq-pill"><%- icon('helpCircle', 16) %>Perguntas Frequentes</div>
+    <h1 class="faq-title">Como podemos ajudar?</h1>
+    <p class="faq-subtitle">Encontre respostas para as dúvidas mais comuns da comunidade acadêmica do IFSul Bagé.</p>
+  </div>
+
+  <form class="faq-search" method="GET" action="/faq">
+    <%- icon('search', 16, 'search-icon') %>
+    <input type="text" name="q" value="<%= query %>" placeholder="Pesquisar nas dúvidas frequentes..." onchange="this.form.submit()">
+    <% if (selCat) { %><input type="hidden" name="cat" value="<%= selCat %>"><% } %>
+    <% if (query) { %>
+      <a href="/faq<%= selCat ? '?cat=' + selCat : '' %>" class="faq-search-clear"><%- icon('x', 16) %></a>
+    <% } %>
+  </form>
+
+  <div class="faq-cat-grid">
+    <% categories.forEach(function(c) { %>
+      <% var isActive = selCat === c._id.toString(); %>
+      <a href="/faq?<%= isActive ? '' : 'cat=' + c._id %><%= query ? (isActive ? 'q=' + encodeURIComponent(query) : '&q=' + encodeURIComponent(query)) : '' %>"
+         class="faq-cat-card <%= isActive ? 'active' : c.cls %>">
+        <%- icon(c.icon === 'FileText' ? 'fileText' : c.icon === 'BookOpen' ? 'bookOpen' : c.icon === 'Award' ? 'award' : c.icon === 'Monitor' ? 'monitor' : c.icon === 'Users' ? 'users' : c.icon === 'Briefcase' ? 'briefcase' : 'helpCircle', 20) %>
+        <span class="cname"><%= c.name %></span>
+        <span class="ccount"><%= counts[c._id.toString()] || 0 %> perguntas</span>
+      </a>
+    <% }) %>
+  </div>
+
+  <% if (faqs.length === 0) { %>
+    <div class="empty-state">
+      <%- icon('helpCircle', 48, 'empty-icon') %>
+      <h3>Nenhum resultado encontrado</h3>
+      <p>Tente outros termos ou navegue pelas categorias.</p>
+      <div class="empty-actions">
+        <a href="/faq" class="btn btn-outline btn-sm">Limpar filtros</a>
+        <a href="/forum" class="btn btn-secondary btn-sm">Perguntar no Fórum</a>
+      </div>
+    </div>
+  <% } else { %>
+    <div class="faq-list">
+      <% faqs.forEach(function(f) { %>
+        <div class="faq-item">
+          <button type="button" class="faq-q-btn">
+            <div class="faq-q-left">
+              <div class="faq-q-icon"><%- icon('helpCircle', 14) %></div>
+              <span class="faq-q-text"><%= f.question %></span>
+            </div>
+            <%- icon('chevronDown', 16, 'faq-chevron') %>
+          </button>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">
+              <p><%= f.answer %></p>
+            </div>
+            <div class="faq-helpful">
+              <span>Esta resposta foi útil?</span>
+              <button type="button" class="yes"><%- icon('check', 14) %>Sim</button>
+              <a href="/forum" class="no">Não — perguntar no Fórum</a>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <div class="faq-cta">
+    <h3>Não encontrou o que buscava?</h3>
+    <p>Poste sua pergunta no fórum e a comunidade irá ajudar.</p>
+    <a href="/forum" class="btn btn-white"><%- icon('messageSquare', 16) %>Ir ao Fórum</a>
+  </div>
+</div>

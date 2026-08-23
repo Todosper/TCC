@@ -1,0 +1,45 @@
+<div class="auth-page">
+  <div class="auth-box">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-icon"><%- icon('graduationCap', 28) %></div>
+        <h1 class="auth-title">Entrar no Sistema</h1>
+        <p class="auth-sub">IFSul Fórum / FAQ — Campus Bagé</p>
+      </div>
+
+      <% if (error) { %>
+        <div class="auth-error"><%- icon('alertCircle', 16) %><%= error %></div>
+      <% } %>
+
+      <form class="auth-form" method="POST" action="/login">
+        <%- include('partials/csrf-field') %>
+        <div class="field">
+          <label for="login">E-mail institucional</label>
+          <input class="input" id="login" name="loginOrEmail" type="email"
+            placeholder="seu.email@ifsul.edu.br">
+        </div>
+        <div class="field">
+          <label for="pw">Senha</label>
+          <div class="field-wrap">
+            <input class="input has-right" id="pw" name="password" type="password"
+              placeholder="••••••••">
+            <button type="button" class="field-right" data-toggle-password="pw">
+              <%- icon('eye', 16) %>
+            </button>
+          </div>
+        </div>
+        <div class="auth-forgot">
+          <a href="/forgot-password">Esqueci minha senha</a>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg btn-block">
+          <%- icon('logIn', 16) %>
+          Entrar
+        </button>
+      </form>
+
+      <p class="auth-footer-text">
+        Ainda não tem conta? <a href="/register">Criar conta</a>
+      </p>
+    </div>
+  </div>
+</div>

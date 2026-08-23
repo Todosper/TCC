@@ -1,0 +1,42 @@
+<div class="auth-page">
+  <div class="auth-box">
+    <div class="auth-card">
+      <% if (sent) { %>
+        <div class="auth-success-block">
+          <div class="auth-success-icon"><%- icon('mail', 28) %></div>
+          <h2>E-mail reenviado!</h2>
+          <p>Verifique sua caixa de entrada (e a pasta de spam) e clique no link de confirmação.</p>
+          <a href="/" class="btn btn-primary btn-block">Voltar ao início</a>
+        </div>
+      <% } else if (alreadyVerified) { %>
+        <div class="auth-success-block">
+          <div class="auth-success-icon"><%- icon('checkCircle2', 28) %></div>
+          <h2>Seu e-mail já está confirmado</h2>
+          <p>Não é necessário fazer mais nada.</p>
+          <a href="/" class="btn btn-primary btn-block">Voltar ao início</a>
+        </div>
+      <% } else { %>
+        <div class="auth-header-row">
+          <a href="/" class="auth-back-btn"><%- icon('arrowLeft', 16) %></a>
+          <div>
+            <h1>Confirmar e-mail</h1>
+            <p>Reenviar o link de confirmação da sua conta</p>
+          </div>
+        </div>
+        <form class="auth-form" method="POST" action="/reenviar-verificacao">
+          <%- include('partials/csrf-field') %>
+          <% if (typeof error !== 'undefined' && error) { %>
+            <div class="auth-error"><%- icon('alertCircle', 16) %><%= error %></div>
+          <% } %>
+          <p style="font-size:0.875rem;color:var(--gray-600);line-height:1.6;margin:0;">
+            Enviaremos um novo link de confirmação para o e-mail da sua conta.
+          </p>
+          <button type="submit" class="btn btn-primary btn-lg btn-block">
+            <%- icon('send', 16) %>
+            Reenviar link de confirmação
+          </button>
+        </form>
+      <% } %>
+    </div>
+  </div>
+</div>
