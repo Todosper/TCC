@@ -1,11 +1,22 @@
-const { Resend } = require("resend");
+// [DESATIVADO] A integração com o Resend foi retirada porque não temos
+// domínio próprio — sem um domínio verificado no painel do Resend, não é
+// possível enviar e-mails para outras pessoas. Todo o código de envio ficou
+// mantido neste arquivo (e nos demais, sempre marcado com "[DESATIVADO]")
+// para ser reativado no futuro: descomente as linhas indicadas, configure
+// RESEND_API_KEY/EMAIL_FROM no ambiente e religue os pontos de chamada em
+// routes/auth.js.
+//
+// const { Resend } = require("resend");
 
 // Sem RESEND_API_KEY configurada, o app continua funcionando normalmente —
 // só não envia e-mails de verdade, e registra isso no log do servidor em vez
 // de quebrar o cadastro/login/recuperação de senha de todo mundo. Isso
 // importa especialmente durante o desenvolvimento local e antes de você
 // configurar a variável em produção.
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+//
+// [DESATIVADO] Com o cliente nulo, nenhuma função deste arquivo envia nada —
+// todas caem no aviso de "não configurado" dentro de sendEmail().
+const resend = null; // era: process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // Remetente: enquanto nenhum domínio for verificado no Resend, SÓ é possível
 // enviar para o e-mail da própria conta Resend, usando este remetente

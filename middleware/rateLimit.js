@@ -65,8 +65,10 @@ const passwordResetLimiter = rateLimit({
   },
 });
 
-// Limite para reenvio de e-mail de verificação — mesma lógica do acima,
-// aplicado à rota de reenvio de confirmação de cadastro.
+// [DESATIVADO] Limite para reenvio de e-mail de verificação — a rota que o
+// usava (/reenviar-verificacao) foi desligada porque não temos domínio próprio
+// para envio via Resend. Código mantido para reativação futura.
+/*
 const resendVerificationLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 5,
@@ -81,5 +83,8 @@ const resendVerificationLimiter = rateLimit({
     });
   },
 });
+*/
 
-module.exports = { loginLimiter, registerLimiter, contentLimiter, passwordResetLimiter, resendVerificationLimiter };
+// [DESATIVADO] resendVerificationLimiter removido da exportação junto com o
+// fluxo de verificação de e-mail. Reexportar ao reativar a funcionalidade.
+module.exports = { loginLimiter, registerLimiter, contentLimiter, passwordResetLimiter };

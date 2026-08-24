@@ -1,10 +1,18 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
-const { loginLimiter, registerLimiter, passwordResetLimiter, resendVerificationLimiter } = require("../middleware/rateLimit");
+// [DESATIVADO] resendVerificationLimiter foi retirado junto com a verificação
+// de e-mail (sem domínio próprio não há como enviar e-mails pelo Resend).
+// Mantido no middleware para reativação futura.
+const { loginLimiter, registerLimiter, passwordResetLimiter } = require("../middleware/rateLimit");
 const { generateToken, hashToken } = require("../helpers/tokens");
-const { sendVerificationEmail, sendPasswordResetEmail } = require("../helpers/email");
+// [DESATIVADO] Envio de e-mails (confirmação de cadastro e recuperação de
+// senha) retirado por não termos domínio próprio para o Resend. As funções
+// continuam existindo em helpers/email.js para uso futuro.
+// const { sendVerificationEmail, sendPasswordResetEmail } = require("../helpers/email");
 
+// [DESATIVADO] Constante usada apenas pelos fluxos de verificação de e-mail,
+// hoje inativos. Mantida para a reativação futura.
 const EMAIL_VERIFY_EXPIRY_MS = 1000 * 60 * 60 * 24; // 24 horas
 const PASSWORD_RESET_EXPIRY_MS = 1000 * 60 * 60; // 1 hora
 
@@ -86,15 +94,20 @@ router.post("/register", registerLimiter, async (req, res) => {
   try {
     const user = await User.create({ name, email, password });
 
+    // [DESATIVADO] Verificação de e-mail no cadastro retirada por não termos
+    // domínio próprio (o Resend só envia para terceiros com domínio
+    // verificado). A conta agora é criada direto como ativa. Código mantido
+    // abaixo para reativação futura — basta descomentar.
+    //
     // Gera o token de verificação de e-mail e dispara o envio. Se o envio
     // falhar (ex.: RESEND_API_KEY ainda não configurada), a conta já foi
     // criada normalmente — a pessoa só continua sem o e-mail verificado até
     // pedir um novo link em /reenviar-verificacao.
-    const { raw, hash } = generateToken();
-    user.emailVerifyTokenHash = hash;
-    user.emailVerifyTokenExpires = new Date(Date.now() + EMAIL_VERIFY_EXPIRY_MS);
-    await user.save();
-    await sendVerificationEmail(user, raw);
+    // const { raw, hash } = generateToken();
+    // user.emailVerifyTokenHash = hash;
+    // user.emailVerifyTokenExpires = new Date(Date.now() + EMAIL_VERIFY_EXPIRY_MS);
+    // await user.save();
+    // await sendVerificationEmail(user, raw);
 
     res.render("register", { title: "Criar Conta", errors: {}, form: {}, done: true });
   } catch (err) {
@@ -104,7 +117,13 @@ router.post("/register", registerLimiter, async (req, res) => {
   }
 });
 
-// ─── VERIFICAÇÃO DE E-MAIL ──────────────────────────────────────────────────
+// ─── VERIFICAÇÃO DE E-MAIL [DESATIVADO] ─────────────────────────────────────
+// [DESATIVADO] As rotas abaixo (confirmar e reenviar confirmação de e-mail)
+// foram retiradas por não termos domínio próprio para envio via Resend.
+// Todo o código foi mantido comentado para reativação futura — basta
+// descomentar este bloco (e os pontos relacionados em /register e
+// middleware/rateLimit.js).
+/*
 router.get("/verificar-email", async (req, res) => {
   try {
     const { token, id } = req.query;
@@ -159,6 +178,8 @@ router.post("/reenviar-verificacao", resendVerificationLimiter, async (req, res)
     res.render("resend-verification", { title: "Reenviar verificação", sent: false, alreadyVerified: false });
   }
 });
+*/
+// ─── FIM DA VERIFICAÇÃO DE E-MAIL [DESATIVADO] ──────────────────────────────
 
 // ─── FORGOT PASSWORD ────────────────────────────────────────────────────────
 router.get("/forgot-password", (req, res) => {
@@ -177,13 +198,18 @@ router.post("/forgot-password", passwordResetLimiter, async (req, res) => {
     // evita que alguém use este formulário para descobrir quais e-mails
     // estão cadastrados no sistema (enumeração de usuários). O e-mail de
     // verdade só é enviado se a conta existir.
-    if (user) {
-      const { raw, hash } = generateToken();
-      user.passwordResetTokenHash = hash;
-      user.passwordResetTokenExpires = new Date(Date.now() + PASSWORD_RESET_EXPIRY_MS);
-      await user.save();
-      await sendPasswordResetEmail(user, raw);
-    }
+    //
+    // [DESATIVADO] O envio do e-mail de recuperação (via Resend) foi retirado
+    // por não termos domínio próprio. Sem ele, gerar token aqui não teria
+    // efeito prático, então o bloco inteiro ficou comentado — mantido no
+    // código para reativação futura.
+    // if (user) {
+    //   const { raw, hash } = generateToken();
+    //   user.passwordResetTokenHash = hash;
+    //   user.passwordResetTokenExpires = new Date(Date.now() + PASSWORD_RESET_EXPIRY_MS);
+    //   await user.save();
+    //   await sendPasswordResetEmail(user, raw);
+    // }
     res.render("forgot-password", { title: "Recuperar Senha", error: null, sent: true });
   } catch (err) {
     console.error(err);
