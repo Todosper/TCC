@@ -48,43 +48,4 @@ const contentLimiter = rateLimit({
   },
 });
 
-// Limite para pedidos de recuperação de senha por IP — evita que alguém
-// dispare e-mails de reset em massa para contas que não são suas (spam) ou
-// esgote a cota de envio do Resend.
-const passwordResetLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 5,
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (req, res) => {
-    res.status(429).render("forgot-password", {
-      title: "Recuperar Senha",
-      error: "Muitos pedidos de recuperação a partir deste dispositivo. Aguarde alguns minutos e tente novamente.",
-      sent: false,
-    });
-  },
-});
-
-// [DESATIVADO] Limite para reenvio de e-mail de verificação — a rota que o
-// usava (/reenviar-verificacao) foi desligada porque não temos domínio próprio
-// para envio via Resend. Código mantido para reativação futura.
-/*
-const resendVerificationLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 5,
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (req, res) => {
-    res.status(429).render("resend-verification", {
-      title: "Reenviar verificação",
-      sent: false,
-      alreadyVerified: false,
-      error: "Muitos pedidos de reenvio a partir deste dispositivo. Aguarde alguns minutos e tente novamente.",
-    });
-  },
-});
-*/
-
-// [DESATIVADO] resendVerificationLimiter removido da exportação junto com o
-// fluxo de verificação de e-mail. Reexportar ao reativar a funcionalidade.
-module.exports = { loginLimiter, registerLimiter, contentLimiter, passwordResetLimiter };
+module.exports = { loginLimiter, registerLimiter, contentLimiter };

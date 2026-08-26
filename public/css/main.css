@@ -501,16 +501,3 @@ textarea.input { resize: none; }
 .pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 2rem; }
 .pagination-info { font-size: 0.875rem; color: var(--gray-500); }
 .dark .pagination-info { color: var(--text-muted); }
-
-/* ─── Banner de e-mail não verificado (aparece em toda página) ──────────── */
-.verify-email-banner {
-  display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
-  gap: 0.5rem 1rem; padding: 0.625rem 1rem;
-  background: var(--amber-50); border-bottom: 1px solid var(--amber-200);
-  font-size: 0.8125rem; color: var(--amber-800); text-align: center;
-}
-.verify-email-banner span { display: flex; align-items: center; gap: 0.375rem; }
-.verify-email-banner svg { flex-shrink: 0; }
-.verify-email-banner a { color: var(--amber-800); font-weight: 600; text-decoration: underline; white-space: nowrap; }
-.dark .verify-email-banner { background: rgba(180,130,20,0.15); border-color: rgba(180,130,20,0.35); color: #fbbf24; }
-.dark .verify-email-banner a { color: #fde68a; }

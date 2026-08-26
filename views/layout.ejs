@@ -23,16 +23,6 @@
 
 <body>
   <%- include('partials/navbar') %>
-    <%# [DESATIVADO] Banner de confirmação de e-mail desligado por não termos
-        domínio próprio para envio via Resend. A marcação foi mantida e a
-        condição recebeu "false &&" para nunca renderizar — remova o "false"
-        (e o comentário) para reativar no futuro. %>
-    <% if (false && loggedIn && !emailVerified) { %>
-      <div class="verify-email-banner">
-        <span><%- icon('mail', 14) %>Confirme seu e-mail para garantir acesso total à sua conta.</span>
-        <a href="/reenviar-verificacao">Reenviar confirmação</a>
-      </div>
-    <% } %>
     <main>
       <%- body %>
     </main>

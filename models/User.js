@@ -13,20 +13,6 @@ const userSchema = new mongoose.Schema(
     },
     isAdmin: { type: Boolean, default: false },
     status: { type: String, enum: ["ativo", "bloqueado"], default: "ativo" },
-
-    // Verificação de e-mail: o token é o hash SHA-256 do valor enviado por
-    // e-mail (nunca guardamos o token em texto puro no banco — mesma lógica
-    // de segurança de uma senha, embora aqui o risco de reuso seja menor).
-    // [DESATIVADO] O fluxo de confirmação de e-mail foi desligado por não
-    // termos domínio próprio para enviar via Resend. Os campos abaixo foram
-    // mantidos no schema para facilitar a reativação no futuro.
-    emailVerified: { type: Boolean, default: false },
-    emailVerifyTokenHash: { type: String, default: null },
-    emailVerifyTokenExpires: { type: Date, default: null },
-
-    // Recuperação de senha: token de uso único com expiração curta.
-    passwordResetTokenHash: { type: String, default: null },
-    passwordResetTokenExpires: { type: Date, default: null },
   },
   { timestamps: true }
 );
