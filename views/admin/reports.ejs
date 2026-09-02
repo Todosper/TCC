@@ -20,10 +20,10 @@
           <td>
             <% if (r.targetType === 'comment' && r.comment) { %>
               <span class="badge badge-gray" style="margin-right:0.375rem;">Comentário</span>
-              <div class="line-clamp-1" style="font-weight:500;color:var(--gray-800);"><%= r.comment.text %></div>
+              <div class="line-clamp-1 admin-table-title"><%= r.comment.text %></div>
             <% } else if (r.topic) { %>
               <span class="badge badge-gray" style="margin-right:0.375rem;">Tópico</span>
-              <div class="line-clamp-1" style="font-weight:500;color:var(--gray-800);"><%= r.topic.title %></div>
+              <div class="line-clamp-1 admin-table-title"><%= r.topic.title %></div>
             <% } else { %>
               <span class="text-xs text-gray-500">Conteúdo original já foi removido</span>
             <% } %>

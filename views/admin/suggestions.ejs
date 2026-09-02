@@ -11,7 +11,7 @@
 <div class="admin-table-wrap">
   <table class="admin-table"><thead><tr><th>Sugestão</th><th class="md-table-cell">Autor real</th><th class="sm-table-cell">Moderação</th><th class="sm-table-cell">Apoios</th><th class="right">Ações</th></tr></thead>
   <tbody><% suggestions.forEach(function(s) { %><tr>
-    <td><div class="line-clamp-1" style="font-weight:500;color:var(--gray-800)"><%= s.title %></div><span class="text-xs text-gray-500"><%= s.createdAt.toLocaleDateString('pt-BR') %><%= s.isAnonymous ? ' · publicação anônima' : '' %></span></td>
+    <td><div class="line-clamp-1 admin-table-title"><%= s.title %></div><span class="text-xs text-gray-500"><%= s.createdAt.toLocaleDateString('pt-BR') %><%= s.isAnonymous ? ' · publicação anônima' : '' %></span></td>
     <td class="md-table-cell"><%= s.authorName %></td>
     <td class="sm-table-cell"><span class="badge <%= s.moderationStatus === 'approved' ? 'badge-emerald' : s.moderationStatus === 'rejected' ? 'badge-red' : 'badge-amber' %>"><%= s.moderationStatus === 'approved' ? 'Aprovada' : s.moderationStatus === 'rejected' ? 'Rejeitada' : 'Pendente' %></span></td>
     <td class="sm-table-cell"><%= s.votes.length %></td>

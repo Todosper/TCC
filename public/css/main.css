@@ -248,6 +248,15 @@ textarea.input { resize: none; }
 @media (max-width: 1023px) { .lg-table-cell { display: none; } }
 @media (max-width: 639px) { .sm-table-cell { display: none; } .sm-hidden-mob { display: none; } }
 
+/* ── Classes utilitárias (light base) ─────────────────────────── */
+.admin-table-title { font-weight: 500; font-size: 0.875rem; color: var(--gray-800); }
+.sidebar-card-title { font-size: 1rem; font-weight: 600; color: var(--gray-800); margin: 0; }
+.auth-instruction { font-size: 0.875rem; color: var(--gray-600); line-height: 1.6; margin: 0; }
+.admin-footnote { padding: 1rem; font-size: 0.75rem; color: var(--gray-400); }
+.admin-role-disabled { background: var(--gray-50); color: var(--gray-500); }
+.auth-icon-text { font-size: 1.5rem; font-weight: 700; color: var(--gray-500); }
+.auth-icon-box { background: var(--gray-200); }
+
 /* ============================================================
    DARK MODE
    Ativado pela classe .dark no <html>
@@ -344,6 +353,21 @@ textarea.input { resize: none; }
 .dark .preview-body                { color: var(--text-secondary); }
 .dark .admin-suggestion-detail h2  { color: var(--text-primary); }
 .dark .admin-suggestion-detail p   { color: var(--text-secondary); }
+
+/* ── Classes utilitárias (dark overrides) ──────────────────── */
+.dark .admin-table-title            { color: var(--text-primary); }
+.dark .sidebar-card-title           { color: var(--text-primary); }
+.dark .auth-instruction             { color: var(--text-secondary); }
+.dark .admin-footnote               { color: var(--text-muted); }
+.dark .admin-role-disabled          { background: var(--bg-input); color: var(--text-muted); border-color: var(--border); }
+.dark .auth-icon-text               { color: var(--text-muted); }
+.dark .auth-icon-box                { background: var(--bg-hover); }
+.dark .comments-header h2           { color: var(--text-secondary); }
+.dark .report-form .field-label     { color: var(--text-secondary); }
+.dark .suggestion-empty h3          { color: var(--text-primary); }
+.dark .suggestion-empty p           { color: var(--text-secondary); }
+.dark .admin-back-link:hover        { color: var(--text-primary); }
+.dark .faq-helpful .no:hover        { color: var(--text-primary); }
 
 /* ── Navbar ────────────────────────────────────────────────── */
 /* A navbar já é verde escuro — no dark apenas afundamos um toque */

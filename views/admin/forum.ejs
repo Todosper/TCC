@@ -18,7 +18,7 @@
       <% topics.forEach(function(t) { %>
         <tr>
           <td>
-            <div class="line-clamp-1" style="font-weight:500;color:var(--gray-800);font-size:0.875rem;"><%= t.title %></div>
+            <div class="line-clamp-1 admin-table-title"><%= t.title %></div>
             <span class="badge <%= catCls(t.category) %>" style="margin-top:0.25rem;"><%= catLabel(t.category) %></span>
           </td>
           <td class="md-table-cell"><span class="text-xs text-gray-500"><%= t.authorName %></span></td>
