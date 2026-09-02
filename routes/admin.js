@@ -155,7 +155,7 @@ router.post("/forum/comentario/:id/excluir", asyncHandler(async (req, res) => {
 // ─── DENÚNCIAS ──────────────────────────────────────────────────────────────
 // Fila de moderação para denúncias enviadas pelos usuários (ver P-29).
 router.get("/denuncias", asyncHandler(async (req, res) => {
-  const { filter = "pending" } = req.query;
+  const { filter = "all" } = req.query;
   const query = filter === "all" ? {} : { status: filter };
 
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
@@ -186,7 +186,7 @@ router.post("/denuncias/:id/status", asyncHandler(async (req, res) => {
 
 // ─── MODERAR SUGESTÕES ─────────────────────────────────────────────────────
 router.get("/sugestoes", asyncHandler(async (req, res) => {
-  const { filter = "pending" } = req.query;
+  const { filter = "all" } = req.query;
   const query = filter === "all" ? {} : { moderationStatus: filter };
 
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
@@ -195,7 +195,7 @@ router.get("/sugestoes", asyncHandler(async (req, res) => {
   const safePage = Math.min(page, totalPages);
 
   const suggestions = await Suggestion.find(query)
-    .sort({ createdAt: -1 })
+    .sort({ votes: -1 })
     .skip((safePage - 1) * PAGE_SIZE)
     .limit(PAGE_SIZE);
 
