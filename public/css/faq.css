@@ -70,7 +70,7 @@
 
 .faq-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .faq-item {
-  background: var(--bg-card); border-radius: 0.75rem; border: 1px solid var(--gray-100);
+  background: #fff; border-radius: 0.75rem; border: 1px solid var(--gray-100);
   box-shadow: var(--shadow-sm); overflow: hidden;
   transition: border-color 0.15s ease;
 }

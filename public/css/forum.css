@@ -59,7 +59,7 @@
   font-size: 0.875rem; font-weight: 500;
   border: 1px solid var(--gray-300);
   color: var(--gray-600);
-  background: var(--bg-card);
+  background: #fff;
   cursor: pointer;
   text-decoration: none;
   transition: all 0.15s ease;
@@ -74,7 +74,7 @@
   text-align: center;
   padding: 4rem 1rem;
 }
-.empty-state.boxed { background: var(--bg-card); border-radius: 1rem; border: 1px solid var(--gray-100); }
+.empty-state.boxed { background: #fff; border-radius: 1rem; border: 1px solid var(--gray-100); }
 .empty-state svg.empty-icon { width: 3rem; height: 3rem; color: var(--gray-300); margin: 0 auto 1rem; }
 .empty-state h3 { color: var(--gray-600); font-weight: 500; margin: 0 0 0.5rem; }
 .empty-state p { color: var(--gray-400); font-size: 0.875rem; margin: 0 0 1rem; }
@@ -84,7 +84,7 @@
   display: flex; align-items: flex-start; gap: 1rem;
   width: 100%;
   padding: 1rem;
-  background: var(--bg-card);
+  background: #fff;
   border-radius: 0.75rem;
   border: 1px solid var(--gray-100);
   text-align: left; text-decoration: none;
@@ -141,7 +141,7 @@
 .breadcrumb .current { color: var(--gray-800); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .topic-main-card {
-  background: var(--bg-card); border-radius: 1rem; border: 1px solid var(--gray-100);
+  background: #fff; border-radius: 1rem; border: 1px solid var(--gray-100);
   box-shadow: var(--shadow-sm); overflow: hidden; margin-bottom: 1rem;
 }
 .topic-main-header { background: var(--green-800); padding: 1rem 1.5rem; color: #fff; }
@@ -189,7 +189,7 @@
 .comments-success svg { width: 0.875rem; height: 0.875rem; }
 
 .comment-card {
-  background: var(--bg-card); border-radius: 0.75rem; border: 1px solid var(--gray-100);
+  background: #fff; border-radius: 0.75rem; border: 1px solid var(--gray-100);
   box-shadow: var(--shadow-sm); padding: 1rem; margin-bottom: 0.75rem;
 }
 .comment-card.own { border-color: var(--green-200); background: #f6fdf8; }
@@ -224,7 +224,7 @@
 .report-form .field-label { display: block; font-size: 0.8125rem; font-weight: 500; color: var(--gray-700); margin-bottom: 0.375rem; }
 .dark .report-form { background: rgba(0,0,0,0.15); border-color: var(--border); }
 
-.reply-box { background: var(--bg-card); border-radius: 1rem; border: 1px solid var(--gray-100); box-shadow: var(--shadow-sm); padding: 1.25rem; }
+.reply-box { background: #fff; border-radius: 1rem; border: 1px solid var(--gray-100); box-shadow: var(--shadow-sm); padding: 1.25rem; }
 .reply-box h3 { font-weight: 600; color: var(--gray-800); font-size: 0.875rem; margin: 0 0 0.75rem; }
 .reply-footer-row { display: flex; align-items: center; justify-content: space-between; margin-top: 0.75rem; }
 .reply-char-count { font-size: 0.75rem; color: var(--gray-400); }

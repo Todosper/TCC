@@ -12,7 +12,7 @@
 .auth-box.wide { max-width: 32rem; }
 
 .auth-card {
-  background: var(--bg-card);
+  background: #fff;
   border-radius: 1rem;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--gray-100);
@@ -85,7 +85,7 @@
 .auth-demo-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .auth-demo-btn {
   font-size: 0.75rem; padding: 0.375rem 0.75rem;
-  background: var(--bg-card); border: 1px solid var(--amber-300); border-radius: 0.5rem;
+  background: #fff; border: 1px solid var(--amber-300); border-radius: 0.5rem;
   color: var(--amber-800); font-weight: 500; cursor: pointer;
   text-decoration: none;
 }
