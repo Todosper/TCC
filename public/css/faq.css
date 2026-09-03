@@ -11,7 +11,7 @@
   margin-bottom: 1rem;
 }
 .faq-pill svg { width: 1rem; height: 1rem; }
-.faq-title { font-size: 1.875rem; font-weight: 700; color: #111827; margin: 0 0 0.75rem; }
+.faq-title { font-size: 1.875rem; font-weight: 700; color: var(--gray-900); margin: 0 0 0.75rem; }
 .faq-subtitle { color: var(--gray-500); max-width: 36rem; margin: 0 auto; }
 
 .faq-search { position: relative; margin: 0 auto 2rem; max-width: 36rem; }
@@ -70,7 +70,7 @@
 
 .faq-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .faq-item {
-  background: #fff; border-radius: 0.75rem; border: 1px solid var(--gray-100);
+  background: var(--bg-card); border-radius: 0.75rem; border: 1px solid var(--gray-100);
   box-shadow: var(--shadow-sm); overflow: hidden;
   transition: border-color 0.15s ease;
 }

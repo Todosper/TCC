@@ -6,7 +6,7 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  background: #fff;
+  background: var(--bg-card);
   border-top: 5px solid var(--green-800);
   border-bottom: 1px solid #dce5da;
   box-shadow: 0 2px 10px rgba(25, 65, 32, 0.06);
@@ -146,7 +146,7 @@
   right: 0;
   margin-top: 0.5rem;
   width: 20rem;
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 0.75rem;
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--gray-100);
@@ -176,7 +176,7 @@
 
 .navbar-mobile-menu {
   display: none;
-  background: #fff;
+  background: var(--bg-card);
   border-top: 1px solid #dce5da;
   padding: 0.75rem 1rem;
   flex-direction: column;
