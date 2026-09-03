@@ -11,6 +11,7 @@
     // Aplica dark antes de qualquer render para evitar flash
     (function () { var t = localStorage.getItem("theme"); if (t === "dark" || t == null) document.documentElement.classList.add("dark") })();
   </script>
+  <meta name="csrf-token" content="<%= csrfToken %>">
   <link rel="stylesheet" href="/css/main.css">
   <link rel="stylesheet" href="/css/navbar.css">
   <link rel="stylesheet" href="/css/home.css">

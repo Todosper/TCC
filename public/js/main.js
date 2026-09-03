@@ -19,6 +19,9 @@ document.addEventListener("DOMContentLoaded", function () {
   var notifBadge = document.getElementById("notif-badge");
   var notifMarkAll = document.getElementById("notif-mark-all");
 
+  var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+  var csrfToken = csrfMeta ? csrfMeta.getAttribute("content") : "";
+
   if (notifBtn && notifDropdown) {
     notifBtn.addEventListener("click", function (e) {
       e.stopPropagation();
@@ -82,7 +85,7 @@ document.addEventListener("DOMContentLoaded", function () {
           var id = item.getAttribute("data-notif-id");
           if (!item.classList.contains("notif-unread")) return;
           e.preventDefault();
-          fetch("/api/notifications/" + id + "/read", { method: "POST" }).then(function () {
+          fetch("/api/notifications/" + id + "/read", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "_csrf=" + encodeURIComponent(csrfToken) }).then(function () {
             item.classList.remove("notif-unread");
             if (unreadCount > 0) {
               unreadCount--;
@@ -113,7 +116,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (notifMarkAll) {
       notifMarkAll.addEventListener("click", function () {
-        fetch("/api/notifications/read-all", { method: "POST" }).then(function () {
+        fetch("/api/notifications/read-all", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "_csrf=" + encodeURIComponent(csrfToken) }).then(function () {
           if (notifList) {
             notifList.querySelectorAll(".notif-unread").forEach(function (el) {
               el.classList.remove("notif-unread");
