@@ -1,7 +1,4 @@
 // Script para popular o banco.
-// Rode com: node seed.js
-// ATENÇÃO: isso apaga as coleções existentes antes de inserir os dados novos.
-
 require("dotenv").config();
 const mongoose = require("mongoose");
 const connectDB = require("./config/db");
