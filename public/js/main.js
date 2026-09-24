@@ -183,21 +183,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // ── Tabs genéricas (perfil, admin, criar-tópico) via querystring ────
   // (Implementadas via links <a> simples — não requer JS adicional)
-
-  // ── Botão visível do VLibras ─────────────────────────────────────────
-  var vlibrasBtn = document.getElementById("vlibras-open");
-  if (vlibrasBtn) {
-    vlibrasBtn.addEventListener("click", function () {
-      var wrapper = document.getElementById("vlibras-access-wrapper");
-      var btn = wrapper && wrapper.shadowRoot && wrapper.shadowRoot.querySelector("#vlibras-button");
-      if (btn) {
-        btn.click();
-        return;
-      }
-      var accessBtn = document.querySelector("[vw-access-button]");
-      if (accessBtn) accessBtn.click();
-    });
-  }
 });
 
 var EYE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
