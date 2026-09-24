@@ -188,6 +188,12 @@ document.addEventListener("DOMContentLoaded", function () {
   var vlibrasBtn = document.getElementById("vlibras-open");
   if (vlibrasBtn) {
     vlibrasBtn.addEventListener("click", function () {
+      var wrapper = document.getElementById("vlibras-access-wrapper");
+      var btn = wrapper && wrapper.shadowRoot && wrapper.shadowRoot.querySelector("#vlibras-button");
+      if (btn) {
+        btn.click();
+        return;
+      }
       var accessBtn = document.querySelector("[vw-access-button]");
       if (accessBtn) accessBtn.click();
     });
