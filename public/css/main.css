@@ -560,3 +560,27 @@ textarea.input { resize: none; }
 .pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 2rem; }
 .pagination-info { font-size: 0.875rem; color: var(--gray-500); }
 .dark .pagination-info { color: var(--text-muted); }
+
+/* ─── Botão visível do VLibras (acessibilidade) ─────────────────────────── */
+.vlibras-visible-btn {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 1.25rem;
+  z-index: 2147483000;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border: none;
+  border-radius: 9999px;
+  background: var(--green-800);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.vlibras-visible-btn:hover { background: var(--green-700); transform: translateY(-2px); }
+.dark .vlibras-visible-btn { background: var(--green-dm-primary); }
+.dark .vlibras-visible-btn:hover { filter: brightness(1.15); }
