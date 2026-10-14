@@ -30,6 +30,10 @@
                 <span>Admin</span>
             </a>
             <% } %>
+              <button id="a11y-toggle" class="navbar-a11y-btn" type="button" data-a11y-toggle aria-haspopup="dialog" aria-expanded="false" aria-controls="a11y-panel">
+                <%- icon('personStanding', 18) %>
+                  <span>Acessibilidade</span>
+              </button>
               <button id="theme-toggle" class="navbar-icon-btn" type="button" title="Modo escuro">
                 <%- icon('moon', 18) %>
               </button>
@@ -64,6 +68,10 @@
                 <button type="submit" class="navbar-pill-btn"><%- icon('logOut', 16) %></button>
               </form>
               <% } else { %>
+                <button id="a11y-toggle" class="navbar-a11y-btn" type="button" data-a11y-toggle aria-haspopup="dialog" aria-expanded="false" aria-controls="a11y-panel">
+                  <%- icon('personStanding', 18) %>
+                    <span>Acessibilidade</span>
+                </button>
                 <button id="theme-toggle" class="navbar-icon-btn" type="button" title="Modo escuro">
                   <%- icon('moon', 18) %>
                 </button>
@@ -94,6 +102,7 @@
     <a href="/sugestoes"
       class="navbar-mobile-link <%= (typeof activePage !== 'undefined' && activePage === 'suggestions') ? 'active' : '' %>">Sugestões</a>
     <div class="navbar-mobile-divider">
+      <button type="button" class="navbar-mobile-link navbar-mobile-link-icon" data-a11y-toggle data-a11y-from-mobile aria-haspopup="dialog" aria-expanded="false" aria-controls="a11y-panel" style="width:100%;"><%- icon('personStanding', 16) %>Acessibilidade</button>
       <% if (loggedIn) { %>
         <% if (isAdmin) { %>
           <a href="/admin" class="navbar-mobile-link navbar-mobile-link-icon"><%- icon('shield', 16) %>Painel Admin</a>
