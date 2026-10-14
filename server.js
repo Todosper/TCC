@@ -51,7 +51,12 @@ app.set("layout", "layout");
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
 }
-
+// ─── Healthcheck (usado pelo self-ping) ──────────────────────────────────────
+// Fica ANTES de sessão/CSRF de propósito: o ping não deve tocar no MongoDB
+// nem gerar cookies.
+app.get("/healthcheck", (req, res) => {
+  res.status(200).send("OK");
+});
 // ─── Middlewares ─────────────────────────────────────────────────────────────
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -124,4 +129,22 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
+
+  // ─── Self-ping: evita o spin-down do plano gratuito do Render ──────────────
+  // O Render define RENDER_EXTERNAL_URL automaticamente; APP_URL é o fallback.
+  const PING_URL = process.env.RENDER_EXTERNAL_URL || process.env.APP_URL;
+  const PING_INTERVAL = 12 * 60 * 1000; // 12 minutos
+
+  if (process.env.NODE_ENV === "production" && PING_URL) {
+    setInterval(async () => {
+      try {
+        const res = await fetch(`${PING_URL}/healthcheck`, {
+          signal: AbortSignal.timeout(10000), // desiste após 10s
+        });
+        console.log(`✅ Self-ping OK (${res.status}) - ${new Date().toISOString()}`);
+      } catch (err) {
+        console.error(`❌ Self-ping falhou: ${err.message}`);
+      }
+    }, PING_INTERVAL);
+  }
 });
