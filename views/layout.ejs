@@ -11,10 +11,6 @@
     // Aplica dark antes de qualquer render para evitar flash
     (function () { var t = localStorage.getItem("theme"); if (t === "dark" || t == null) document.documentElement.classList.add("dark") })();
   </script>
-  <script>
-    // Aplica preferências de acessibilidade (tamanho do texto, alto contraste, destacar links) antes do render
-    (function () { try { var d = document.documentElement, s = parseInt(localStorage.getItem("a11y-font-size"), 10); if (s >= 80 && s <= 150 && s !== 100) d.style.fontSize = s + "%"; if (localStorage.getItem("a11y-contrast") === "1") d.classList.add("a11y-contrast"); if (localStorage.getItem("a11y-links") === "1") d.classList.add("a11y-links") } catch (e) { } })();
-  </script>
   <meta name="csrf-token" content="<%= csrfToken %>">
   <link rel="stylesheet" href="/css/main.css">
   <link rel="stylesheet" href="/css/navbar.css">
@@ -24,12 +20,10 @@
   <link rel="stylesheet" href="/css/faq.css">
   <link rel="stylesheet" href="/css/admin.css">
   <link rel="stylesheet" href="/css/suggestions.css">
-  <link rel="stylesheet" href="/css/accessibility.css">
 </head>
 
 <body>
   <%- include('partials/navbar') %>
-  <%- include('partials/accessibility-panel') %>
     <main>
       <%- body %>
     </main>
@@ -37,7 +31,6 @@
       <%- include('partials/footer') %>
         <% } %>
           <script src="/js/main.js"></script>
-  <script src="/js/accessibility.js"></script>
   <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
   <script>
     new window.VLibras.Widget('https://vlibras.gov.br/app');

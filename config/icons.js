@@ -54,8 +54,6 @@ const PATHS = {
   monitor: '<rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>',
   lightbulb: '<path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.57-.65 1.07-1.35 1.48-2.08A6 6 0 1 0 7.43 11.92c.41.73.91 1.43 1.48 2.08.63.72 1.09 1.55 1.09 2.5h4c0-.95.46-1.78 1.09-2.5Z"/>',
   thumbsUp: '<path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h3.76a2 2 0 0 0 1.79-1.11L12 4a3.13 3.13 0 0 1 3 1.88Z"/>',
-  personStanding: '<circle cx="12" cy="5" r="1"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 7v7"/>',
-  rotateCcw: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
 };
 
 function icon(name, size, extraClass) {
