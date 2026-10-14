@@ -1,0 +1,58 @@
+<div id="a11y-panel" class="a11y-panel" role="dialog" aria-modal="false" aria-labelledby="a11y-title" tabindex="-1" hidden>
+  <div class="a11y-head">
+    <div class="a11y-title" id="a11y-title">
+      <%- icon('personStanding', 20) %>
+        <span>Acessibilidade</span>
+    </div>
+    <button type="button" id="a11y-close" class="a11y-close" aria-label="Fechar painel de acessibilidade">
+      <%- icon('x', 18) %>
+    </button>
+  </div>
+
+  <p class="a11y-intro">Personalize sua leitura. Use Tab para navegar pelas opções.</p>
+
+  <div class="a11y-section">
+    <div class="a11y-label" id="a11y-theme-label">Aparência</div>
+    <div class="a11y-theme-group" role="group" aria-labelledby="a11y-theme-label">
+      <button type="button" class="a11y-theme-btn" data-a11y-theme="light" aria-pressed="false">
+        <span class="a11y-dot" aria-hidden="true"></span>Claro
+      </button>
+      <button type="button" class="a11y-theme-btn" data-a11y-theme="dark" aria-pressed="true">
+        <span class="a11y-dot" aria-hidden="true"></span>Escuro
+      </button>
+    </div>
+    <p class="a11y-hint">Preferência salva neste navegador.</p>
+  </div>
+
+  <div class="a11y-section">
+    <div class="a11y-label" id="a11y-size-label">Tamanho do texto</div>
+    <div class="a11y-size" role="group" aria-labelledby="a11y-size-label">
+      <button type="button" id="a11y-size-dec" class="a11y-size-btn" aria-label="Diminuir tamanho do texto">A−</button>
+      <span id="a11y-size-value" class="a11y-size-value" role="status" aria-live="polite">100%</span>
+      <button type="button" id="a11y-size-inc" class="a11y-size-btn" aria-label="Aumentar tamanho do texto">A+</button>
+    </div>
+  </div>
+
+  <div class="a11y-rows">
+    <div class="a11y-row">
+      <span id="a11y-contrast-label">Alto contraste</span>
+      <button type="button" id="a11y-contrast" class="a11y-switch" role="switch" aria-checked="false" aria-labelledby="a11y-contrast-label"></button>
+    </div>
+    <div class="a11y-row">
+      <span id="a11y-links-label">Destacar links</span>
+      <button type="button" id="a11y-links" class="a11y-switch" role="switch" aria-checked="false" aria-labelledby="a11y-links-label"></button>
+    </div>
+    <div class="a11y-row">
+      <span id="a11y-libras-label">Libras</span>
+      <button type="button" id="a11y-libras" class="a11y-switch" role="switch" aria-checked="false" aria-labelledby="a11y-libras-label"></button>
+    </div>
+    <p id="a11y-libras-msg" class="a11y-hint a11y-msg" role="status" hidden>VLibras indisponível no momento. Verifique sua conexão e recarregue a página.</p>
+  </div>
+
+  <button type="button" id="a11y-reset" class="a11y-reset">
+    <%- icon('rotateCcw', 16) %>
+      Restaurar configurações
+  </button>
+
+  <p class="a11y-esc">Pressione Esc para fechar</p>
+</div>
