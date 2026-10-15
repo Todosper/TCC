@@ -13,6 +13,7 @@ const Report = require("../models/Report");
 const { CATEGORIES, catLabel, catCls } = require("../models/categories");
 const { createNotification } = require("../helpers/notifications");
 const { buildSearchRegex } = require("../helpers/search");
+const firebase = require("../helpers/firebase");
 
 const PAGE_SIZE = 20;
 
@@ -296,6 +297,7 @@ router.get("/users", asyncHandler(async (req, res) => {
 
   res.render("admin/users", {
     title: "Usuários", tab: "users", users, query: q || "",
+    deleteError: req.query.erro === "firebase",
     page: safePage, totalPages, baseQuery: q ? `q=${encodeURIComponent(q)}` : "", basePath: "/admin/users",
   });
 }));
@@ -349,6 +351,21 @@ router.post("/users/:id/excluir", asyncHandler(async (req, res) => {
     const adminCount = await User.countDocuments({ isAdmin: true });
     if (adminCount <= 1) {
       return res.redirect("/admin/users");
+    }
+  }
+
+  // Conta vinculada ao Firebase: apaga lá PRIMEIRO. Se falhar, a exclusão é
+  // interrompida sem mexer em nada no MongoDB — assim nunca sobra conta
+  // órfã no Firebase nem usuário pela metade. O admin pode tentar de novo.
+  if (user.firebaseUid) {
+    try {
+      if (!firebase.isAdminConfigured()) {
+        throw new Error("FIREBASE_SERVICE_ACCOUNT não está configurada");
+      }
+      await firebase.deleteUser(user.firebaseUid);
+    } catch (err) {
+      console.error(`Falha ao excluir ${user.email} no Firebase:`, err.message);
+      return res.redirect("/admin/users?erro=firebase");
     }
   }
 

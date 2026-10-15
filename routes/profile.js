@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { requireAuth } = require("../middleware/auth");
 const User = require("../models/User");
+const firebase = require("../helpers/firebase");
 
 router.get("/profile", requireAuth, async (req, res) => {
   const user = await User.findById(req.session.user.id);
@@ -20,7 +21,9 @@ router.post("/profile/info", requireAuth, async (req, res) => {
     const { name, email } = req.body;
     const user = await User.findById(req.session.user.id);
     user.name = name;
-    user.email = email;
+    // Em contas vinculadas ao Firebase, o e-mail é a identidade verificada e
+    // não pode ser trocado por aqui (senão pularia a verificação).
+    if (!user.firebaseUid) user.email = email;
     await user.save();
 
     req.session.user.name = user.name;
@@ -38,7 +41,22 @@ router.post("/profile/senha", requireAuth, async (req, res) => {
     const { current, next, confirm } = req.body;
     const user = await User.findById(req.session.user.id);
 
-    const match = await user.comparePassword(current);
+    // Conta vinculada ao Firebase: a senha atual é conferida lá (é a fonte da
+    // verdade). Conta antiga: bcrypt, como sempre.
+    const useFirebase = !!user.firebaseUid && firebase.isConfigured();
+    let fbSession = null;
+    let match;
+    if (useFirebase) {
+      try {
+        fbSession = await firebase.signIn(user.email, current);
+        match = true;
+      } catch (err) {
+        if (!["INVALID_LOGIN_CREDENTIALS", "INVALID_PASSWORD", "EMAIL_NOT_FOUND"].includes(err.code)) throw err;
+        match = false;
+      }
+    } else {
+      match = await user.comparePassword(current);
+    }
     if (!match) {
       return res.render("profile", {
         title: "Meu Perfil",
@@ -69,6 +87,8 @@ router.post("/profile/senha", requireAuth, async (req, res) => {
         errors: { confirm: "As senhas não coincidem." },
       });
     }
+
+    if (fbSession) await firebase.changePassword(fbSession.idToken, next);
 
     user.password = next;
     await user.save();

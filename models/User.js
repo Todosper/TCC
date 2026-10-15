@@ -13,6 +13,14 @@ const userSchema = new mongoose.Schema(
     },
     isAdmin: { type: Boolean, default: false },
     status: { type: String, enum: ["ativo", "bloqueado"], default: "ativo" },
+
+    // ── Integração com o Firebase Authentication ──────────────────────────
+    // Todos opcionais: usuários antigos (sem esses campos) continuam
+    // funcionando normalmente. Não ponha `default` aqui: "ausente" significa
+    // "conta antiga, ainda não vinculada ao Firebase".
+    firebaseUid: { type: String, unique: true, sparse: true },
+    emailVerified: { type: Boolean },
+    verificationEmailSentAt: { type: Date },
   },
   { timestamps: true }
 );

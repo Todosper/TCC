@@ -1,5 +1,9 @@
 <%- include('../partials/admin-header') %>
 
+  <% if (deleteError) { %>
+    <div class="auth-error"><%- icon('alertCircle', 16) %>Não foi possível excluir a conta no Firebase, então o usuário NÃO foi excluído. Tente novamente em instantes.</div>
+  <% } %>
+
   <div class="admin-table-toolbar">
     <h2>Usuários (<%= users.length %>)</h2>
     <form class="admin-search-box" method="GET" action="/admin/users">

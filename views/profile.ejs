@@ -32,7 +32,7 @@
         </div>
         <div class="field span-2">
           <label>E-mail</label>
-          <input class="input" name="email" type="email" value="<%= user.email %>">
+          <input class="input" name="email" type="email" value="<%= user.email %>" <%= user.firebaseUid ? 'readonly' : '' %>>
         </div>
         <div class="field">
           <label>Perfil</label>

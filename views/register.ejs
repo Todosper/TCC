@@ -5,7 +5,11 @@
         <div class="auth-success-block">
           <div class="auth-success-icon"><%- icon('checkCircle2', 28) %></div>
           <h2>Conta criada!</h2>
-          <p>Você já pode entrar normalmente com seu e-mail e senha.</p>
+          <% if (locals.verifyEmail) { %>
+            <p>Enviamos um link de confirmação para <strong><%= locals.verifyEmail %></strong>. Clique nele (confira também o spam) e depois entre com seu e-mail e senha.</p>
+          <% } else { %>
+            <p>Você já pode entrar normalmente com seu e-mail e senha.</p>
+          <% } %>
           <a href="/login" class="btn btn-primary btn-block">Ir para o Login</a>
         </div>
       <% } else { %>
