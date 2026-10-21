@@ -19,7 +19,7 @@
           <h1 class="topic-main-title"><%= topic.title %></h1>
           <div class="topic-main-tags">
             <span class="badge badge-white"><%= catLabel(topic.category) %></span>
-            <% topic.tags.forEach(function(tag) { %>
+            <% (topic.tags || []).forEach(function(tag) { %>
               <span class="hashtag">#<%= tag %></span>
             <% }) %>
           </div>

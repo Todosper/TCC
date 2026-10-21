@@ -10,6 +10,7 @@ const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
 const { attachUser } = require("./middleware/auth");
 const icon = require("./config/icons");
+const { assetVersion } = require("./config/assets");
 const { doubleCsrfProtection, attachCsrfToken, invalidCsrfTokenError } = require("./middleware/csrf");
 
 const authRoutes = require("./routes/auth");
@@ -20,6 +21,20 @@ const notificationRoutes = require("./routes/notifications");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === "production";
+
+// Rede de segurança: no Express 4 uma Promise rejeitada dentro de um handler
+// `async` que não tenha try/catch (ex.: o banco cair no meio de uma consulta)
+// vira "unhandledRejection", e no Node 15+ isso DERRUBA o processo inteiro —
+// o site inteiro sai do ar até o Render reiniciar o serviço. Aqui só registramos
+// o erro; as rotas continuam sendo responsáveis por tratar os próprios erros.
+process.on("unhandledRejection", (reason) => {
+  console.error("Promise rejeitada sem tratamento:", reason);
+});
+
+app.disable("x-powered-by");
+// Versão dos CSS/JS, usada pelo layout para montar /css/main.css?v=...
+app.locals.assetVersion = assetVersion;
 
 // ─── Variáveis de ambiente obrigatórias ─────────────────────────────────────
 // Assim como já acontece para MONGODB_URI (ver config/db.js), o servidor não
@@ -57,23 +72,46 @@ if (process.env.NODE_ENV === "production") {
 app.get("/healthcheck", (req, res) => {
   res.status(200).send("OK");
 });
+// ─── Compressão (opcional) ───────────────────────────────────────────────────
+// Reduz bastante o tamanho de HTML/CSS/JS trafegado. O pacote "compression" não
+// vem instalado por padrão: rode `npm install compression` para ativar. Sem ele,
+// o site funciona exatamente como antes.
+try {
+  app.use(require("compression")());
+} catch (err) {
+  if (err.code !== "MODULE_NOT_FOUND") throw err;
+}
+
+// ─── Arquivos estáticos ──────────────────────────────────────────────────────
+// Ficam ANTES dos parsers, da sessão e do CSRF: um pedido de CSS/JS não precisa
+// passar por nada disso. Em produção, o navegador guarda os arquivos por 30 dias;
+// como o layout usa URLs versionadas (?v=hash), uma nova versão do site nunca
+// fica presa no cache.
+app.use(
+  express.static(path.join(__dirname, "public"), isProduction ? { maxAge: "30d", immutable: true } : {})
+);
+// Navegadores pedem /favicon.ico sozinhos; sem isto, cada pedido passava por
+// sessão + banco e terminava numa página 404 completa.
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+
 // ─── Middlewares ─────────────────────────────────────────────────────────────
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
 app.use(methodOverride("_method"));
-app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
+    // touchAfter: sem isso, o connect-mongo gravava no MongoDB a cada requisição
+    // só para renovar a validade da sessão. Agora renova no máximo 1x por dia.
+    store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI, touchAfter: 24 * 3600 }),
     cookie: {
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isProduction,
       sameSite: "lax",
     },
   })

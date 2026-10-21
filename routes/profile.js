@@ -1,11 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const { requireAuth } = require("../middleware/auth");
+const asyncHandler = require("../middleware/asyncHandler");
 const User = require("../models/User");
 const firebase = require("../helpers/firebase");
 
-router.get("/profile", requireAuth, async (req, res) => {
+// asyncHandler: sem try/catch aqui, uma falha no banco (ou usuário inexistente)
+// virava uma Promise rejeitada sem tratamento — que derrubava o processo.
+router.get("/profile", requireAuth, asyncHandler(async (req, res) => {
   const user = await User.findById(req.session.user.id);
+  if (!user) return res.redirect("/login");
   res.render("profile", {
     title: "Meu Perfil",
     user,
@@ -14,7 +18,7 @@ router.get("/profile", requireAuth, async (req, res) => {
     pwSaved: req.query.pwSaved === "1",
     errors: {},
   });
-});
+}));
 
 router.post("/profile/info", requireAuth, async (req, res) => {
   try {

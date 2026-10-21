@@ -5,7 +5,7 @@
   <% } %>
 
   <div class="admin-table-toolbar">
-    <h2>Usuários (<%= users.length %>)</h2>
+    <h2>Usuários (<%= total %>)</h2>
     <form class="admin-search-box" method="GET" action="/admin/users">
       <%- icon('search', 16) %>
         <input type="text" name="q" value="<%= query %>" placeholder="Buscar por nome ou e-mail..."

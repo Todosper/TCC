@@ -1,6 +1,6 @@
 <%- include('../partials/admin-header') %>
 <div class="admin-table-toolbar">
-  <h2>Denúncias (<%= reports.length %>)</h2>
+  <h2>Denúncias (<%= total %>)</h2>
   <div class="tabs">
     <a class="tab-btn <%= filter === 'pending' ? 'active' : '' %>" href="/admin/denuncias?filter=pending">Pendentes</a>
     <a class="tab-btn <%= filter === 'reviewed' ? 'active' : '' %>" href="/admin/denuncias?filter=reviewed">Revisadas</a>

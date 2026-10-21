@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 
 <head>
+  <% var v = (typeof assetVersion !== 'undefined') ? assetVersion : '1'; %>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>
@@ -16,15 +17,23 @@
     (function () { try { var d = document.documentElement, s = parseInt(localStorage.getItem("a11y-font-size"), 10); if (s >= 80 && s <= 150 && s !== 100) d.style.fontSize = s + "%"; if (localStorage.getItem("a11y-contrast") === "1") d.classList.add("a11y-contrast"); if (localStorage.getItem("a11y-links") === "1") d.classList.add("a11y-links") } catch (e) { } })();
   </script>
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/navbar.css">
-  <link rel="stylesheet" href="/css/home.css">
-  <link rel="stylesheet" href="/css/forms.css">
-  <link rel="stylesheet" href="/css/forum.css">
-  <link rel="stylesheet" href="/css/faq.css">
-  <link rel="stylesheet" href="/css/admin.css">
-  <link rel="stylesheet" href="/css/suggestions.css">
-  <link rel="stylesheet" href="/css/accessibility.css">
+  <%# Fontes: preconnect abre a conexão cedo, e a folha de estilo carrega SEM bloquear a
+      primeira renderização (media="print" + onload). Com display=swap o texto já aparece
+      na fonte padrão e troca quando a fonte chega. Antes isto era um @import dentro do
+      main.css, que só começava a baixar depois do main.css inteiro. %>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap"></noscript>
+  <link rel="stylesheet" href="/css/main.css?v=<%= v %>">
+  <link rel="stylesheet" href="/css/navbar.css?v=<%= v %>">
+  <link rel="stylesheet" href="/css/home.css?v=<%= v %>">
+  <link rel="stylesheet" href="/css/forms.css?v=<%= v %>">
+  <link rel="stylesheet" href="/css/forum.css?v=<%= v %>">
+  <link rel="stylesheet" href="/css/faq.css?v=<%= v %>">
+  <link rel="stylesheet" href="/css/admin.css?v=<%= v %>">
+  <link rel="stylesheet" href="/css/suggestions.css?v=<%= v %>">
+  <link rel="stylesheet" href="/css/accessibility.css?v=<%= v %>">
 </head>
 
 <body>
@@ -36,11 +45,29 @@
     <% if (typeof hideFooter==='undefined' || !hideFooter) { %>
       <%- include('partials/footer') %>
         <% } %>
-          <script src="/js/main.js"></script>
-  <script src="/js/accessibility.js"></script>
-  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+          <script src="/js/main.js?v=<%= v %>"></script>
+  <script src="/js/accessibility.js?v=<%= v %>"></script>
   <script>
-    new window.VLibras.Widget('https://vlibras.gov.br/app');
+    // VLibras: carregado só DEPOIS que a página terminou de carregar.
+    // Antes era um <script src> comum, que bloqueava o fim do carregamento: os
+    // botões do site (menu, notificações, FAQ, acessibilidade) só passavam a
+    // funcionar depois que o servidor do governo (vlibras.gov.br) respondesse —
+    // e, se ele estivesse lento ou fora do ar, a página ficava "travada" e ainda
+    // dava erro de JavaScript (window.VLibras indefinido). Agora o site abre e
+    // responde de imediato; o widget de Libras aparece assim que estiver pronto.
+    (function () {
+      function loadVLibras() {
+        var s = document.createElement("script");
+        s.src = "https://vlibras.gov.br/app/vlibras-plugin.js";
+        s.async = true;
+        s.onload = function () {
+          try { new window.VLibras.Widget("https://vlibras.gov.br/app"); } catch (e) { /* VLibras indisponível: o painel de acessibilidade avisa */ }
+        };
+        document.body.appendChild(s);
+      }
+      if (document.readyState === "complete") loadVLibras();
+      else window.addEventListener("load", loadVLibras);
+    })();
   </script>
   </body>
 

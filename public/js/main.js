@@ -25,7 +25,11 @@ document.addEventListener("DOMContentLoaded", function () {
   if (notifBtn && notifDropdown) {
     notifBtn.addEventListener("click", function (e) {
       e.stopPropagation();
-      notifDropdown.classList.toggle("open");
+      var opened = notifDropdown.classList.toggle("open");
+      // A lista só é buscada quando o usuário abre o sino. O número do selo já
+      // vem pronto do servidor em cada página, então não há motivo para fazer
+      // uma requisição (e duas consultas no banco) a cada página aberta.
+      if (opened) loadNotifications();
     });
     document.addEventListener("click", function (e) {
       if (!notifDropdown.contains(e.target) && e.target !== notifBtn) {
@@ -85,6 +89,7 @@ document.addEventListener("DOMContentLoaded", function () {
           var id = item.getAttribute("data-notif-id");
           if (!item.classList.contains("notif-unread")) return;
           e.preventDefault();
+          var href = item.getAttribute("href");
           fetch("/api/notifications/" + id + "/read", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "_csrf=" + encodeURIComponent(csrfToken) }).then(function () {
             item.classList.remove("notif-unread");
             if (unreadCount > 0) {
@@ -97,7 +102,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
               }
             }
-            window.location.href = item.getAttribute("href");
+          }).catch(function () {
+            // Falhou ao marcar como lida: segue para o link mesmo assim.
+          }).then(function () {
+            // Antes, se o pedido falhasse, o clique era cancelado (preventDefault)
+            // e a notificação "não abria" — o usuário ficava preso.
+            window.location.href = href;
           });
         });
       });
@@ -109,10 +119,30 @@ document.addEventListener("DOMContentLoaded", function () {
       return div.innerHTML;
     }
 
-    fetch("/api/notifications").then(function (res) {
-      if (res.ok) return res.json();
-      return { notifications: [], unreadCount: 0 };
-    }).then(renderNotifications).catch(function () {});
+    var notifLoading = false;
+    var notifLoadedAt = 0;
+    function loadNotifications() {
+      if (notifLoading) return;
+      // Reaberto logo em seguida: reaproveita a lista que já está na tela.
+      if (notifLoadedAt && Date.now() - notifLoadedAt < 15000) return;
+      notifLoading = true;
+      if (!notifLoadedAt && notifList) {
+        notifList.innerHTML = '<div class="notif-empty">Carregando...</div>';
+      }
+      fetch("/api/notifications").then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      }).then(function (data) {
+        notifLoadedAt = Date.now();
+        renderNotifications(data);
+      }).catch(function () {
+        if (!notifLoadedAt && notifList) {
+          notifList.innerHTML = '<div class="notif-empty">Não foi possível carregar as notificações.</div>';
+        }
+      }).then(function () {
+        notifLoading = false;
+      });
+    }
 
     if (notifMarkAll) {
       notifMarkAll.addEventListener("click", function () {

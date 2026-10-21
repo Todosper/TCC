@@ -38,6 +38,12 @@ topicSchema.set("toObject", { virtuals: true });
 // seção 9 da auditoria, especialmente os Cenários C/D).
 topicSchema.index({ createdAt: -1 });
 topicSchema.index({ category: 1, createdAt: -1 });
-topicSchema.index({ views: -1 });
+// Ordenação por popularidade: `views` sozinho tem MUITOS empates (todo tópico novo
+// tem 0 visualizações), e com empates a paginação do MongoDB pode repetir ou
+// pular tópicos entre uma página e outra. O desempate por data deixa a ordem
+// estável, e estes índices cobrem exatamente essa ordenação (com e sem filtro
+// de categoria). O antigo índice só em `views` passou a ser redundante.
+topicSchema.index({ views: -1, createdAt: -1 });
+topicSchema.index({ category: 1, views: -1, createdAt: -1 });
 
 module.exports = mongoose.model("Topic", topicSchema);

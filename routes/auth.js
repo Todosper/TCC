@@ -4,6 +4,7 @@ const router = express.Router();
 const User = require("../models/User");
 const firebase = require("../helpers/firebase");
 const { loginLimiter, registerLimiter } = require("../middleware/rateLimit");
+const asyncHandler = require("../middleware/asyncHandler");
 
 // Intervalo mínimo entre dois reenvios automáticos do e-mail de verificação
 // (evita encher a caixa de entrada de quem tenta logar várias vezes).
@@ -112,7 +113,9 @@ router.get("/register", (req, res) => {
   res.render("register", { title: "Criar Conta", errors: {}, form: {}, done: false });
 });
 
-router.post("/register", registerLimiter, async (req, res) => {
+// asyncHandler: a checagem de e-mail duplicado (User.findOne) roda fora de um
+// try/catch; se o banco falhar ali, a Promise rejeitada derrubava o processo.
+router.post("/register", registerLimiter, asyncHandler(async (req, res) => {
   const { name, email, password, password2 } = req.body;
   const errors = {};
 
@@ -194,7 +197,7 @@ router.post("/register", registerLimiter, async (req, res) => {
     errors.general = "Erro ao criar conta. Tente novamente.";
     res.render("register", { title: "Criar Conta", errors, form: req.body, done: false });
   }
-});
+}));
 
 // ─── FORGOT PASSWORD ────────────────────────────────────────────────────────
 // Quem envia o e-mail é o Firebase; o link abre a página de redefinição do

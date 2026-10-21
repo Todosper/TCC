@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { requireAdmin } = require("../middleware/auth");
+const { requireAdmin, invalidateUserCache } = require("../middleware/auth");
 const asyncHandler = require("../middleware/asyncHandler");
 const User = require("../models/User");
 const Topic = require("../models/Topic");
@@ -13,6 +13,7 @@ const Report = require("../models/Report");
 const { CATEGORIES, catLabel, catCls } = require("../models/categories");
 const { createNotification } = require("../helpers/notifications");
 const { buildSearchRegex } = require("../helpers/search");
+const { queryString, paginate } = require("../helpers/query");
 const firebase = require("../helpers/firebase");
 
 const PAGE_SIZE = 20;
@@ -29,11 +30,13 @@ router.get("/", asyncHandler(async (req, res) => {
   const [
     userCount, topicCount, commentCount, faqCount, blockedCount, pendingSuggestionCount, pendingReportCount,
     newUsersThisMonth, newTopicsThisWeek, newCommentsThisWeek, newFaqsThisWeek,
+    recentTopics, recentUsers,
   ] = await Promise.all([
-    User.countDocuments(),
-    Topic.countDocuments(),
-    Comment.countDocuments(),
-    Faq.countDocuments(),
+    // Totais sem filtro: estimatedDocumentCount lê só os metadados da coleção.
+    User.estimatedDocumentCount(),
+    Topic.estimatedDocumentCount(),
+    Comment.estimatedDocumentCount(),
+    Faq.estimatedDocumentCount(),
     User.countDocuments({ status: "bloqueado" }),
     Suggestion.countDocuments({ moderationStatus: "pending" }),
     Report.countDocuments({ status: "pending" }),
@@ -44,10 +47,11 @@ router.get("/", asyncHandler(async (req, res) => {
     Topic.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
     Comment.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
     Faq.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
+    // Antes, estas duas consultas esperavam as 11 contagens terminarem.
+    Topic.find().sort({ createdAt: -1 }).limit(3).select("title createdAt").lean(),
+    // Sem .lean(): a view chama u.roleLabel(), que é um método do model.
+    User.find().sort({ createdAt: -1 }).limit(3).select("name role createdAt"),
   ]);
-
-  const recentTopics = await Topic.find().sort({ createdAt: -1 }).limit(3);
-  const recentUsers = await User.find().sort({ createdAt: -1 }).limit(3);
 
   res.render("admin/dashboard", {
     title: "Painel Administrativo",
@@ -97,7 +101,25 @@ router.get("/faq/:id/editar", asyncHandler(async (req, res) => {
 
 router.post("/faq/:id/editar", asyncHandler(async (req, res) => {
   const { question, answer, category } = req.body;
-  await Faq.findByIdAndUpdate(req.params.id, { question, answer, category });
+
+  // findByIdAndUpdate NÃO roda as validações do schema: antes, salvar o
+  // formulário com um campo vazio gravava pergunta/resposta em branco (e uma
+  // categoria vazia deixava a pergunta "sem categoria"). Agora tem a mesma
+  // validação do cadastro de nova pergunta.
+  const errors = {};
+  if (!question || !question.trim()) errors.question = "Pergunta obrigatória.";
+  if (!answer || !answer.trim()) errors.answer = "Resposta obrigatória.";
+  if (!category) errors.category = "Selecione uma categoria.";
+
+  if (Object.keys(errors).length > 0) {
+    const categories = await FaqCategory.find();
+    return res.render("admin/faq-form", {
+      title: "Editar Pergunta", tab: "faq", categories,
+      faq: { _id: req.params.id, question, answer, category }, errors,
+    });
+  }
+
+  await Faq.findByIdAndUpdate(req.params.id, { question: question.trim(), answer: answer.trim(), category });
   res.redirect("/admin/faq");
 }));
 
@@ -108,18 +130,16 @@ router.post("/faq/:id/excluir", asyncHandler(async (req, res) => {
 
 // ─── MODERAR FÓRUM ──────────────────────────────────────────────────────────
 router.get("/forum", asyncHandler(async (req, res) => {
-  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-  const totalTopics = await Topic.countDocuments();
-  const totalPages = Math.max(1, Math.ceil(totalTopics / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-
-  const topics = await Topic.find()
-    .sort({ createdAt: -1 })
-    .skip((safePage - 1) * PAGE_SIZE)
-    .limit(PAGE_SIZE);
+  const { items: topics, total, totalPages, page: safePage } = await paginate({
+    page: req.query.page,
+    pageSize: PAGE_SIZE,
+    count: () => Topic.estimatedDocumentCount(),
+    find: (skip, limit) => Topic.find().sort({ createdAt: -1 }).skip(skip).limit(limit)
+      .select("title category authorName locked createdAt").lean(),
+  });
 
   res.render("admin/forum", {
-    title: "Moderar Fórum", tab: "forum", topics, catLabel, catCls,
+    title: "Moderar Fórum", tab: "forum", topics, total, catLabel, catCls,
     page: safePage, totalPages, baseQuery: "", basePath: "/admin/forum",
   });
 }));
@@ -134,9 +154,11 @@ router.post("/forum/:id/toggle-lock", asyncHandler(async (req, res) => {
 }));
 
 router.post("/forum/:id/excluir", asyncHandler(async (req, res) => {
-  await Topic.findByIdAndDelete(req.params.id);
-  await Comment.deleteMany({ topic: req.params.id });
-  await Report.deleteMany({ topic: req.params.id });
+  await Promise.all([
+    Topic.findByIdAndDelete(req.params.id),
+    Comment.deleteMany({ topic: req.params.id }),
+    Report.deleteMany({ topic: req.params.id }),
+  ]);
   res.redirect("/admin/forum");
 }));
 
@@ -156,23 +178,25 @@ router.post("/forum/comentario/:id/excluir", asyncHandler(async (req, res) => {
 // ─── DENÚNCIAS ──────────────────────────────────────────────────────────────
 // Fila de moderação para denúncias enviadas pelos usuários (ver P-29).
 router.get("/denuncias", asyncHandler(async (req, res) => {
-  const { filter = "all" } = req.query;
+  const filter = queryString(req.query.filter) || "all";
   const query = filter === "all" ? {} : { status: filter };
 
-  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-  const totalReports = await Report.countDocuments(query);
-  const totalPages = Math.max(1, Math.ceil(totalReports / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-
-  const reports = await Report.find(query)
-    .populate("topic")
-    .populate("comment")
-    .sort({ createdAt: -1 })
-    .skip((safePage - 1) * PAGE_SIZE)
-    .limit(PAGE_SIZE);
+  const { items: reports, total, totalPages, page: safePage } = await paginate({
+    page: req.query.page,
+    pageSize: PAGE_SIZE,
+    count: () => Report.countDocuments(query),
+    // A tela só mostra o título do tópico e o texto do comentário: o populate
+    // busca apenas esses campos (antes trazia os documentos inteiros).
+    find: (skip, limit) => Report.find(query)
+      .populate("topic", "title")
+      .populate("comment", "text")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+  });
 
   res.render("admin/reports", {
-    title: "Denúncias", tab: "reports", reports, filter,
+    title: "Denúncias", tab: "reports", reports, total, filter,
     page: safePage, totalPages, baseQuery: `filter=${encodeURIComponent(filter)}`, basePath: "/admin/denuncias",
   });
 }));
@@ -187,21 +211,30 @@ router.post("/denuncias/:id/status", asyncHandler(async (req, res) => {
 
 // ─── MODERAR SUGESTÕES ─────────────────────────────────────────────────────
 router.get("/sugestoes", asyncHandler(async (req, res) => {
-  const { filter = "all" } = req.query;
+  const filter = queryString(req.query.filter) || "all";
   const query = filter === "all" ? {} : { moderationStatus: filter };
 
-  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-  const totalSuggestions = await Suggestion.countDocuments(query);
-  const totalPages = Math.max(1, Math.ceil(totalSuggestions / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-
-  const suggestions = await Suggestion.find(query)
-    .sort({ votes: -1 })
-    .skip((safePage - 1) * PAGE_SIZE)
-    .limit(PAGE_SIZE);
+  // BUG corrigido: antes ordenava por `{ votes: -1 }`, mas `votes` é uma lista de
+  // objetos — o MongoDB não ordena por quantidade de itens, então a ordem na
+  // prática era aleatória. Agora ordena de verdade por número de apoios (maior
+  // primeiro) e, em empate, pelas mais recentes. A lista de votos em si não é
+  // trazida: a tela só mostra a quantidade.
+  const { items: suggestions, total, totalPages, page: safePage } = await paginate({
+    page: req.query.page,
+    pageSize: PAGE_SIZE,
+    count: () => Suggestion.countDocuments(query),
+    find: (skip, limit) => Suggestion.aggregate([
+      { $match: query },
+      { $addFields: { supportCount: { $size: { $ifNull: ["$votes", []] } } } },
+      { $sort: { supportCount: -1, createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      { $project: { votes: 0, description: 0 } },
+    ]),
+  });
 
   res.render("admin/suggestions", {
-    title: "Moderar Sugestões", tab: "suggestions", suggestions, filter,
+    title: "Moderar Sugestões", tab: "suggestions", suggestions, total, filter,
     page: safePage, totalPages, baseQuery: `filter=${encodeURIComponent(filter)}`, basePath: "/admin/sugestoes",
   });
 }));
@@ -280,23 +313,22 @@ router.post("/sugestoes/:id/excluir", asyncHandler(async (req, res) => {
 
 // ─── USUÁRIOS ───────────────────────────────────────────────────────────────
 router.get("/users", asyncHandler(async (req, res) => {
-  const { q } = req.query;
+  const q = queryString(req.query.q);
   const filter = q
     ? { $or: [{ name: buildSearchRegex(q) }, { email: buildSearchRegex(q) }] }
     : {};
 
-  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-  const totalUsers = await User.countDocuments(filter);
-  const totalPages = Math.max(1, Math.ceil(totalUsers / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-
-  const users = await User.find(filter)
-    .sort({ createdAt: -1 })
-    .skip((safePage - 1) * PAGE_SIZE)
-    .limit(PAGE_SIZE);
+  const { items: users, total, totalPages, page: safePage } = await paginate({
+    page: req.query.page,
+    pageSize: PAGE_SIZE,
+    count: () => User.countDocuments(filter),
+    // Nunca traz o hash da senha para esta tela (a view não usa).
+    find: (skip, limit) => User.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit)
+      .select("name email role isAdmin status createdAt"),
+  });
 
   res.render("admin/users", {
-    title: "Usuários", tab: "users", users, query: q || "",
+    title: "Usuários", tab: "users", users, total, query: q,
     deleteError: req.query.erro === "firebase",
     page: safePage, totalPages, baseQuery: q ? `q=${encodeURIComponent(q)}` : "", basePath: "/admin/users",
   });
@@ -307,6 +339,8 @@ router.post("/users/:id/toggle-status", asyncHandler(async (req, res) => {
   if (user) {
     user.status = user.status === "ativo" ? "bloqueado" : "ativo";
     await user.save();
+    // Aplica o bloqueio/desbloqueio na hora, sem esperar o cache de conta expirar.
+    invalidateUserCache(user._id);
   }
   res.redirect("/admin/users");
 }));
@@ -318,6 +352,7 @@ router.post("/users/:id/role", asyncHandler(async (req, res) => {
   if (user && !(user._id.toString() === req.session.user.id)) {
     user.role = req.body.role;
     await user.save();
+    invalidateUserCache(user._id);
   }
   res.redirect("/admin/users");
 }));
@@ -336,6 +371,7 @@ router.post("/users/:id/toggle-admin", asyncHandler(async (req, res) => {
     }
     user.isAdmin = !user.isAdmin;
     await user.save();
+    invalidateUserCache(user._id);
   }
   res.redirect("/admin/users");
 }));
@@ -394,6 +430,7 @@ router.post("/users/:id/excluir", asyncHandler(async (req, res) => {
   // Por fim, remove os dados de identificação/acesso propriamente ditos:
   // nome, e-mail e senha (hash) não sobrevivem à exclusão.
   await User.findByIdAndDelete(user._id);
+  invalidateUserCache(user._id);
 
   res.redirect("/admin/users");
 }));

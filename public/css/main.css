@@ -3,7 +3,9 @@
    Replica visual do protótipo Figma Make (Tailwind) em CSS puro.
    ============================================================ */
 
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap");
+/* As fontes (Inter e Montserrat) são carregadas pelo <head> do layout.ejs.
+   Antes ficavam aqui, em um @import: o navegador só descobria o pedido ao
+   terminar de baixar e ler este arquivo, atrasando a primeira renderização. */
 
 :root {
   --green-900: #123a20;

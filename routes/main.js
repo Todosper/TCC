@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const router = express.Router();
 const { requireAuth } = require("../middleware/auth");
 const Topic = require("../models/Topic");
@@ -11,38 +12,65 @@ const Report = require("../models/Report");
 const { CATEGORIES, catLabel, catCls } = require("../models/categories");
 const { createNotification } = require("../helpers/notifications");
 const { buildSearchRegex } = require("../helpers/search");
+const { queryString, isObjectIdString, paginate } = require("../helpers/query");
 const { contentLimiter } = require("../middleware/rateLimit");
 
 const PAGE_SIZE = 20; // tópicos por página no fórum
 
+// Mesma regra do virtual `isRecent` do model Topic ("criado nas últimas 48h"),
+// para as listagens que usam .lean() (objetos simples, sem virtuals).
+const RECENT_MS = 1000 * 60 * 60 * 48;
+function isRecent(createdAt) {
+  if (!createdAt) return true;
+  return Date.now() - new Date(createdAt).getTime() < RECENT_MS;
+}
+
+// Conta as respostas de vários tópicos em UMA consulta agregada (evita N+1).
+async function getReplyCounts(topicIds) {
+  if (topicIds.length === 0) return new Map();
+  const rows = await Comment.aggregate([
+    { $match: { topic: { $in: topicIds } } },
+    { $group: { _id: "$topic", count: { $sum: 1 } } },
+  ]);
+  return new Map(rows.map((r) => [r._id.toString(), r.count]));
+}
+
+// Campos que as listagens realmente exibem. Deixar de fora `content` (até 5000
+// caracteres por tópico) e `tags` reduz bastante o volume lido do banco.
+const TOPIC_LIST_FIELDS = "title category authorName locked createdAt views";
+
 // ─── HOME ───────────────────────────────────────────────────────────────────
 router.get("/", async (req, res) => {
   try {
-    const recentTopicsRaw = await Topic.find().sort({ createdAt: -1 }).limit(4);
-    const faqs = await Faq.find().populate("category").limit(4);
+    // Todas as consultas da home são independentes entre si e rodam em
+    // paralelo (antes eram ~8 idas ao banco, uma depois da outra). Os totais
+    // usam estimatedDocumentCount (lê só os metadados da coleção, sem varrer
+    // documentos). A contagem de respostas dos tópicos recentes depende da
+    // lista de tópicos, então é encadeada a ela — mas ainda em paralelo com o
+    // resto.
+    const recentTopicsPromise = Topic.find()
+      .sort({ createdAt: -1 })
+      .limit(4)
+      .select(TOPIC_LIST_FIELDS)
+      .lean()
+      .then(async (topics) => {
+        const replyCountMap = await getReplyCounts(topics.map((t) => t._id));
+        return topics.map((t) => ({
+          ...t,
+          isRecent: isRecent(t.createdAt),
+          replies: replyCountMap.get(t._id.toString()) || 0,
+        }));
+      });
 
-    const [userCount, topicCount, commentCount, faqCount] = await Promise.all([
-      User.countDocuments(),
-      Topic.countDocuments(),
-      Comment.countDocuments(),
-      Faq.countDocuments(),
+    const [recentTopics, faqs, userCount, topicCount, commentCount, faqCount] = await Promise.all([
+      recentTopicsPromise,
+      // A home só mostra o texto da pergunta — não precisa de populate(category).
+      Faq.find().select("question").limit(4).lean(),
+      User.estimatedDocumentCount(),
+      Topic.estimatedDocumentCount(),
+      Comment.estimatedDocumentCount(),
+      Faq.estimatedDocumentCount(),
     ]);
-
-    // Conta respostas de cada tópico recente em uma única consulta agregada,
-    // em vez de uma consulta por tópico (evita N+1 — ver P-11 da auditoria).
-    const topicIds = recentTopicsRaw.map((t) => t._id);
-    const replyCounts = await Comment.aggregate([
-      { $match: { topic: { $in: topicIds } } },
-      { $group: { _id: "$topic", count: { $sum: 1 } } },
-    ]);
-    const replyCountMap = new Map(replyCounts.map((r) => [r._id.toString(), r.count]));
-
-    const recentTopics = recentTopicsRaw.map((t) => {
-      const obj = t.toObject({ virtuals: true });
-      obj.replies = replyCountMap.get(t._id.toString()) || 0;
-      obj.createdAt = t.createdAt; // garante o Date original p/ toLocaleDateString na view
-      return obj;
-    });
 
     res.render("home", {
       title: "Início",
@@ -61,41 +89,35 @@ router.get("/", async (req, res) => {
 // ─── FORUM (lista) ──────────────────────────────────────────────────────────
 router.get("/forum", async (req, res) => {
   try {
-    const { q, cat, sort } = req.query;
+    // Parâmetros sempre como texto (ver helpers/query.js).
+    const q = queryString(req.query.q);
+    const cat = queryString(req.query.cat);
+    const sort = queryString(req.query.sort);
+
     const filter = {};
     if (cat) filter.category = cat;
     if (q) filter.title = buildSearchRegex(q);
 
-    // Paginação: sem isso, a página carregava TODOS os tópicos que batessem
-    // no filtro de uma vez só — funciona bem com poucos tópicos, mas piora
-    // progressivamente conforme o fórum cresce (ver seção 9 da auditoria).
-    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const totalTopics = await Topic.countDocuments(filter);
-    const totalPages = Math.max(1, Math.ceil(totalTopics / PAGE_SIZE));
-    const safePage = Math.min(page, totalPages);
+    // "Populares": desempata por data. Só por `views` há muitos empates (todo
+    // tópico novo tem 0) e a paginação podia repetir/pular tópicos.
+    const sortSpec = sort === "popular" ? { views: -1, createdAt: -1 } : { createdAt: -1 };
 
-    let query = Topic.find(filter);
-    if (sort === "popular") query = query.sort({ views: -1 });
-    else query = query.sort({ createdAt: -1 });
-    query = query.skip((safePage - 1) * PAGE_SIZE).limit(PAGE_SIZE);
-
-    const topicsRaw = await query;
-
-    // Conta respostas de cada tópico em uma única consulta agregada, em vez
-    // de uma consulta por tópico dentro de um loop (evita N+1 — ver P-11).
-    const topicIds = topicsRaw.map((t) => t._id);
-    const replyCounts = await Comment.aggregate([
-      { $match: { topic: { $in: topicIds } } },
-      { $group: { _id: "$topic", count: { $sum: 1 } } },
-    ]);
-    const replyCountMap = new Map(replyCounts.map((r) => [r._id.toString(), r.count]));
-
-    const topics = topicsRaw.map((t) => {
-      const obj = t.toObject({ virtuals: true });
-      obj.replyCount = replyCountMap.get(t._id.toString()) || 0;
-      obj.createdAt = t.createdAt;
-      return obj;
+    // Paginação: contagem e página buscadas em paralelo.
+    const { items: topicsRaw, totalPages, page: safePage } = await paginate({
+      page: req.query.page,
+      pageSize: PAGE_SIZE,
+      count: () => Topic.countDocuments(filter),
+      find: (skip, limit) => Topic.find(filter).sort(sortSpec).skip(skip).limit(limit).select(TOPIC_LIST_FIELDS).lean(),
     });
+
+    const replyCountMap = await getReplyCounts(topicsRaw.map((t) => t._id));
+
+    const topics = topicsRaw.map((t) => ({
+      ...t,
+      views: t.views || 0,
+      isRecent: isRecent(t.createdAt),
+      replyCount: replyCountMap.get(t._id.toString()) || 0,
+    }));
 
     // Query string para os links de paginação preservarem os filtros ativos.
     const baseQueryParts = [];
@@ -109,8 +131,8 @@ router.get("/forum", async (req, res) => {
       categories: CATEGORIES,
       catLabel,
       catCls,
-      query: q || "",
-      selCat: cat || "",
+      query: q,
+      selCat: cat,
       sort: sort || "recent",
       page: safePage,
       totalPages,
@@ -170,14 +192,14 @@ router.post("/forum/novo", requireAuth, contentLimiter, async (req, res) => {
 // ─── TOPIC DETAIL ───────────────────────────────────────────────────────────
 router.get("/forum/topico/:id", async (req, res) => {
   try {
-    const topic = await Topic.findByIdAndUpdate(
-      req.params.id,
-      { $inc: { views: 1 } },
-      { new: true }
-    );
+    // O tópico (com a visualização já contada) e os comentários não dependem
+    // um do outro: buscados em paralelo. Um id inválido faz as duas consultas
+    // falharem e cai no catch (404), como antes.
+    const [topic, comments] = await Promise.all([
+      Topic.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } }, { new: true }).lean(),
+      Comment.find({ topic: req.params.id }).sort({ createdAt: 1 }).lean(),
+    ]);
     if (!topic) return res.status(404).render("404", { title: "Não encontrado" });
-
-    const comments = await Comment.find({ topic: topic._id }).sort({ createdAt: 1 });
 
     res.render("topic-detail", {
       title: topic.title,
@@ -227,7 +249,9 @@ router.post("/forum/topico/:id/responder", requireAuth, contentLimiter, async (r
 
     const topicAuthorId = String(topic.author);
     if (topicAuthorId !== String(req.session.user.id)) {
-      await createNotification(
+      // Não precisa esperar: createNotification trata os próprios erros, e quem
+      // respondeu não depende dela para ver a página.
+      createNotification(
         topic.author,
         "forum_reply",
         `${req.session.user.name} respondeu ao seu tópico "${topic.title}"`,
@@ -292,8 +316,10 @@ router.post("/forum/topico/:id/denunciar", requireAuth, contentLimiter, async (r
 // ─── FAQ ────────────────────────────────────────────────────────────────────
 router.get("/faq", async (req, res) => {
   try {
-    const { q, cat } = req.query;
-    const categories = await FaqCategory.find();
+    const q = queryString(req.query.q);
+    // Um id de categoria inválido (ex.: /faq?cat=abc) antes derrubava a página
+    // com erro 500; agora é simplesmente ignorado.
+    const cat = isObjectIdString(req.query.cat) ? req.query.cat : "";
 
     const filter = {};
     if (cat) filter.category = cat;
@@ -304,14 +330,18 @@ router.get("/faq", async (req, res) => {
       ];
     }
 
-    const faqs = await Faq.find(filter).populate("category");
+    // As três consultas são independentes e rodam em paralelo. A contagem por
+    // categoria agora é feita pelo próprio banco (agregação) — antes o site
+    // carregava TODAS as perguntas, com populate, só para contar.
+    const [categories, faqs, countRows] = await Promise.all([
+      FaqCategory.find().lean(),
+      Faq.find(filter).select("question answer").lean(),
+      Faq.aggregate([{ $group: { _id: "$category", n: { $sum: 1 } } }]),
+    ]);
 
-    // Contagem de perguntas por categoria (para os cards)
-    const allFaqs = await Faq.find().populate("category");
     const counts = {};
-    allFaqs.forEach((f) => {
-      const id = f.category._id.toString();
-      counts[id] = (counts[id] || 0) + 1;
+    countRows.forEach((row) => {
+      if (row._id) counts[row._id.toString()] = row.n;
     });
 
     res.render("faq", {
@@ -319,8 +349,8 @@ router.get("/faq", async (req, res) => {
       faqs,
       categories,
       counts,
-      query: q || "",
-      selCat: cat || "",
+      query: q,
+      selCat: cat,
     });
   } catch (err) {
     console.error(err);
@@ -331,14 +361,34 @@ router.get("/faq", async (req, res) => {
 // ─── SUGESTÕES PARA O CAMPUS ───────────────────────────────────────────────
 router.get("/sugestoes", async (req, res) => {
   try {
-    const suggestions = await Suggestion.find({ moderationStatus: "approved" })
-      .sort({ publishedAt: -1, createdAt: -1 })
-      .lean();
     const currentUserId = req.session.user ? String(req.session.user.id) : null;
-    suggestions.forEach((suggestion) => {
-      suggestion.supportCount = suggestion.votes.length;
-      suggestion.hasSupported = !!currentUserId && suggestion.votes.some((vote) => String(vote.user) === currentUserId);
-    });
+    const userObjectId = isObjectIdString(currentUserId) ? new mongoose.Types.ObjectId(currentUserId) : null;
+
+    // O total de apoios e "este usuário já apoiou?" são calculados pelo próprio
+    // banco. Antes, a lista completa de votos de CADA sugestão era trazida para
+    // o servidor só para contar e procurar o usuário — crescia a cada novo voto.
+    // (Em $project, `false` seria lido como "excluir o campo"; por isso $literal.)
+    const suggestions = await Suggestion.aggregate([
+      { $match: { moderationStatus: "approved" } },
+      { $sort: { publishedAt: -1, createdAt: -1 } },
+      {
+        $project: {
+          title: 1,
+          description: 1,
+          status: 1,
+          statusReason: 1,
+          isAnonymous: 1,
+          authorName: 1,
+          publishedAt: 1,
+          createdAt: 1,
+          supportCount: { $size: { $ifNull: ["$votes", []] } },
+          hasSupported: userObjectId
+            ? { $in: [userObjectId, { $ifNull: ["$votes.user", []] }] }
+            : { $literal: false },
+        },
+      },
+    ]);
+
     res.render("suggestions", { title: "Sugestões para o Campus", suggestions, submitted: req.query.enviada === "1" });
   } catch (err) {
     console.error(err);
@@ -384,14 +434,26 @@ router.post("/sugestoes/nova", requireAuth, contentLimiter, async (req, res) => 
 
 router.post("/sugestoes/:id/apoio", requireAuth, async (req, res) => {
   try {
-    const suggestion = await Suggestion.findOne({ _id: req.params.id, moderationStatus: "approved" });
-    if (!suggestion) return res.status(404).render("404", { title: "Não encontrado" });
+    const userId = new mongoose.Types.ObjectId(req.session.user.id);
+    const base = { _id: req.params.id, moderationStatus: "approved" };
 
-    const userId = String(req.session.user.id);
-    const voteIndex = suggestion.votes.findIndex((vote) => String(vote.user) === userId);
-    if (voteIndex === -1) suggestion.votes.push({ user: req.session.user.id });
-    else suggestion.votes.splice(voteIndex, 1);
-    await suggestion.save();
+    // Alternar o apoio com operações ATÔMICAS no banco. Antes: carregava a
+    // sugestão inteira (com todos os votos), alterava o array em memória e
+    // salvava — duas pessoas apoiando ao mesmo tempo podiam sobrescrever o voto
+    // uma da outra. Agora: primeiro tenta remover o apoio existente; se não
+    // havia, adiciona (só se ainda não existir).
+    const removed = await Suggestion.updateOne(
+      { ...base, "votes.user": userId },
+      { $pull: { votes: { user: userId } } }
+    );
+    if (removed.matchedCount === 0) {
+      const now = new Date();
+      const added = await Suggestion.updateOne(
+        { ...base, "votes.user": { $ne: userId } },
+        { $push: { votes: { user: userId, createdAt: now, updatedAt: now } } }
+      );
+      if (added.matchedCount === 0) return res.status(404).render("404", { title: "Não encontrado" });
+    }
     res.redirect("/sugestoes");
   } catch (err) {
     console.error(err);
