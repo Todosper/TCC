@@ -1,0 +1,20 @@
+<%#
+  Formulário de denúncia (escondido até o botão "Denunciar" ser acionado).
+  Recebe: formId, label e, opcionalmente, commentId (quando a denúncia é sobre um comentário).
+%>
+<form id="<%= formId %>" method="POST" action="/forum/topico/<%= topic._id %>/denunciar" class="report-form" hidden>
+  <%- include('csrf-field') %>
+  <% if (typeof commentId !== 'undefined' && commentId) { %><input type="hidden" name="commentId" value="<%= commentId %>"><% } %>
+  <label class="field-label" for="<%= formId %>-reason"><%= label %></label>
+  <select class="input" id="<%= formId %>-reason" name="reason" required>
+    <option value="">Selecione um motivo</option>
+    <option value="spam">Spam / propaganda</option>
+    <option value="offensive">Conteúdo ofensivo</option>
+    <option value="personal_info">Expõe dados pessoais de alguém</option>
+    <option value="off_topic">Fora do contexto do Campus</option>
+    <option value="other">Outro motivo</option>
+  </select>
+  <label class="sr-only" for="<%= formId %>-details">Detalhes adicionais (opcional)</label>
+  <textarea class="input report-details" id="<%= formId %>-details" name="details" rows="2" maxlength="500" placeholder="Detalhes adicionais (opcional)"></textarea>
+  <button type="submit" class="btn btn-secondary btn-sm report-submit">Enviar denúncia</button>
+</form>

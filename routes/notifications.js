@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { requireAuth } = require("../middleware/auth");
 const Notification = require("../models/Notification");
+const { isObjectIdString } = require("../helpers/query");
 
 router.get("/api/notifications", requireAuth, async (req, res) => {
   try {
@@ -20,30 +21,24 @@ router.get("/api/notifications", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/api/notifications/:id/read", requireAuth, async (req, res) => {
-  try {
-    // updateOne: não precisa devolver o documento (findOneAndUpdate devolvia).
-    await Notification.updateOne(
-      { _id: req.params.id, recipient: req.session.user.id },
-      { read: true }
-    );
-    res.json({ ok: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Erro ao marcar notificação." });
-  }
-});
-
 router.post("/api/notifications/read-all", requireAuth, async (req, res) => {
   try {
-    await Notification.updateMany(
-      { recipient: req.session.user.id, read: false },
-      { read: true }
-    );
+    await Notification.updateMany({ recipient: req.session.user.id, read: false }, { read: true });
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Erro ao marcar notificações." });
+  }
+});
+
+router.post("/api/notifications/:id/read", requireAuth, async (req, res) => {
+  if (!isObjectIdString(req.params.id)) return res.status(400).json({ error: "Identificador inválido." });
+  try {
+    await Notification.updateOne({ _id: req.params.id, recipient: req.session.user.id }, { read: true });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao marcar notificação." });
   }
 });
 

@@ -1,5 +1,14 @@
-<% var activePage = 'forum'; %>
-<div class="container-sm" style="padding:2.5rem 1rem;">
+<%
+  // Monta a URL do fórum mantendo os filtros ativos, trocando só o que for pedido.
+  var buildUrl = function (over) {
+    var p = { cat: selCat, q: query, sort: sort !== 'recent' ? sort : '' };
+    Object.keys(over).forEach(function (k) { p[k] = over[k]; });
+    var parts = [];
+    ['cat', 'q', 'sort'].forEach(function (k) { if (p[k]) parts.push(k + '=' + encodeURIComponent(p[k])); });
+    return '/forum' + (parts.length ? '?' + parts.join('&') : '');
+  };
+%>
+<div class="container-sm page-pad">
   <div class="page-header-row">
     <div>
       <h1 class="page-title">Fórum de Discussões</h1>
@@ -8,41 +17,47 @@
     <% if (loggedIn) { %>
       <a href="/forum/novo" class="btn btn-primary btn-lg"><%- icon('plus', 16) %>Criar Tópico</a>
     <% } else { %>
-      <a href="/login" class="btn btn-secondary"><%- icon('logIn', 16) %>Entre para participar</a>
+      <a href="/login?next=%2Fforum%2Fnovo" class="btn btn-secondary"><%- icon('logIn', 16) %>Entre para participar</a>
     <% } %>
   </div>
 
-  <div class="cat-filter-grid">
+  <% if (typeof removed !== 'undefined' && removed) { %>
+    <div class="auth-success" role="status"><%- icon('checkCircle2', 16) %>Tópico excluído.</div>
+  <% } %>
+
+  <nav class="cat-filter-grid" aria-label="Filtrar por categoria">
     <% categories.forEach(function(c) { %>
       <% var isActive = selCat === c.id; %>
-      <a href="/forum?<%= isActive ? '' : 'cat=' + c.id %><%= query ? (isActive ? 'q=' + encodeURIComponent(query) : '&q=' + encodeURIComponent(query)) : '' %><%= sort !== 'recent' ? (isActive && !query ? 'sort=' + sort : '&sort=' + sort) : '' %>"
-        class="cat-filter-btn badge <%= isActive ? 'active' : c.cls %>">
+      <a href="<%= buildUrl({ cat: isActive ? '' : c.id }) %>"
+        class="cat-filter-btn badge <%= isActive ? 'active' : c.cls %>"<%- isActive ? ' aria-current="true"' : '' %>>
         <%= c.label %>
       </a>
     <% }) %>
-  </div>
+  </nav>
 
   <div class="search-filter-row">
-    <form class="search-box" method="GET" action="/forum" style="flex:1;">
+    <form class="search-box" method="GET" action="/forum" role="search">
       <%- icon('search', 16, 'search-icon') %>
-      <input type="text" name="q" value="<%= query %>" placeholder="Buscar tópicos..." onchange="this.form.submit()">
+      <label for="forum-search" class="sr-only">Buscar tópicos pelo título</label>
+      <input type="search" id="forum-search" name="q" value="<%= query %>" placeholder="Buscar tópicos...">
       <% if (selCat) { %><input type="hidden" name="cat" value="<%= selCat %>"><% } %>
       <% if (sort !== 'recent') { %><input type="hidden" name="sort" value="<%= sort %>"><% } %>
+      <button type="submit" class="search-submit">Buscar</button>
     </form>
-    <div class="sort-buttons">
-      <a href="/forum?sort=recent<%= selCat ? '&cat=' + selCat : '' %><%= query ? '&q=' + encodeURIComponent(query) : '' %>" class="sort-btn <%= sort === 'recent' ? 'active' : '' %>">
+    <nav class="sort-buttons" aria-label="Ordenar tópicos">
+      <a href="<%= buildUrl({ sort: '' }) %>" class="sort-btn <%= sort === 'recent' ? 'active' : '' %>"<%- sort === 'recent' ? ' aria-current="true"' : '' %>>
         <%- icon('clock', 16) %><span>Recentes</span>
       </a>
-      <a href="/forum?sort=popular<%= selCat ? '&cat=' + selCat : '' %><%= query ? '&q=' + encodeURIComponent(query) : '' %>" class="sort-btn <%= sort === 'popular' ? 'active' : '' %>">
+      <a href="<%= buildUrl({ sort: 'popular' }) %>" class="sort-btn <%= sort === 'popular' ? 'active' : '' %>"<%- sort === 'popular' ? ' aria-current="true"' : '' %>>
         <%- icon('trendingUp', 16) %><span>Populares</span>
       </a>
-    </div>
+    </nav>
   </div>
 
   <% if (topics.length === 0) { %>
     <div class="empty-state boxed">
       <%- icon('messageSquare', 48, 'empty-icon') %>
-      <h3>Nenhum tópico encontrado</h3>
+      <h2>Nenhum tópico encontrado</h2>
       <p>Tente outros termos ou crie um novo tópico.</p>
       <div class="empty-actions">
         <a href="/forum" class="btn btn-outline btn-sm">Limpar filtros</a>
@@ -60,17 +75,18 @@
             <div class="topic-row-title-line">
               <span class="topic-row-title"><%= t.title %></span>
               <% if (t.isRecent) { %><span class="tag-new">Novo</span><% } %>
+              <% if (t.solved) { %><span class="tag-solved"><%- icon('checkCircle2', 10) %>Resolvido</span><% } %>
               <% if (t.locked) { %><span class="tag-locked"><%- icon('lock', 10) %>Encerrado</span><% } %>
             </div>
             <div class="topic-row-meta">
               <span class="badge <%= catCls(t.category) %>"><%= catLabel(t.category) %></span>
               <span><%= t.authorName %></span>
-              <span><%= t.createdAt.toLocaleDateString('pt-BR') %></span>
+              <span><%= fmtDate(t.createdAt) %></span>
             </div>
           </div>
           <div class="topic-row-stats">
-            <div class="replies"><%- icon('messageSquare', 14) %><span><%= t.replyCount || 0 %> resp.</span></div>
-            <div class="views"><%= t.views %> views</div>
+            <div class="replies"><%- icon('messageSquare', 14) %><span><%= t.replyCount || 0 %> <%= plural(t.replyCount || 0, 'resposta', 'respostas') %></span></div>
+            <div class="views"><%= t.views %> <%= plural(t.views, 'visualização', 'visualizações') %></div>
           </div>
         </a>
       <% }) %>

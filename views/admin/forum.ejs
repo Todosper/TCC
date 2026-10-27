@@ -1,7 +1,7 @@
 <%- include('../partials/admin-header') %>
 
 <div class="admin-table-toolbar">
-  <h2>Moderação do Fórum (<%= total %> tópicos)</h2>
+  <h2>Moderação do Fórum (<%= total %> <%= plural(total, 'tópico', 'tópicos') %>)</h2>
 </div>
 
 <div class="admin-table-wrap">
@@ -18,8 +18,8 @@
       <% topics.forEach(function(t) { %>
         <tr>
           <td>
-            <div class="line-clamp-1 admin-table-title"><%= t.title %></div>
-            <span class="badge <%= catCls(t.category) %>" style="margin-top:0.25rem;"><%= catLabel(t.category) %></span>
+            <a href="/forum/topico/<%= t._id %>" class="line-clamp-1 admin-table-title"><%= t.title %></a>
+            <span class="badge <%= catCls(t.category) %> badge-spaced"><%= catLabel(t.category) %></span>
           </td>
           <td class="md-table-cell"><span class="text-xs text-gray-500"><%= t.authorName %></span></td>
           <td class="sm-table-cell">
@@ -31,15 +31,16 @@
           </td>
           <td class="right">
             <div class="table-actions">
-              <form method="POST" action="/admin/forum/<%= t._id %>/toggle-lock" style="display:inline;">
+              <form method="POST" action="/admin/forum/<%= t._id %>/toggle-lock" class="inline-form">
                 <%- include('../partials/csrf-field') %>
-                <button type="submit" class="table-icon-btn <%= t.locked ? 'ok' : 'warn' %>">
+                <button type="submit" class="table-icon-btn <%= t.locked ? 'ok' : 'warn' %>"
+                  title="<%= t.locked ? 'Reabrir tópico' : 'Encerrar tópico' %>" aria-label="<%= t.locked ? 'Reabrir' : 'Encerrar' %> o tópico: <%= t.title %>">
                   <%- t.locked ? icon('unlock', 14) : icon('lock', 14) %>
                 </button>
               </form>
-              <form method="POST" action="/admin/forum/<%= t._id %>/excluir" onsubmit="return confirm('Excluir este tópico?');" style="display:inline;">
+              <form method="POST" action="/admin/forum/<%= t._id %>/excluir" data-confirm="Excluir este tópico e todas as respostas?" class="inline-form">
                 <%- include('../partials/csrf-field') %>
-                <button type="submit" class="table-icon-btn danger"><%- icon('trash2', 14) %></button>
+                <button type="submit" class="table-icon-btn danger" title="Excluir tópico" aria-label="Excluir o tópico: <%= t.title %>"><%- icon('trash2', 14) %></button>
               </form>
             </div>
           </td>

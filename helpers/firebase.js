@@ -1,15 +1,15 @@
-// Integração com o Firebase Authentication via API REST (Identity Toolkit).
+// Integração com o Firebase Authentication.
 //
-// Por que REST e não o SDK? Só precisamos de duas coisas do Firebase: ENVIAR
-// os e-mails (verificação de conta e redefinição de senha) e confirmar se o
-// e-mail foi verificado. Isso dispensa firebase-admin, conta de serviço e
-// qualquer dependência nova — basta a "Chave de API da Web" do projeto, que é
-// um identificador público (não é um segredo) e fica em FIREBASE_API_KEY.
+// As operações de login, cadastro, verificação de e-mail e redefinição de senha
+// usam a API REST (Identity Toolkit) e precisam apenas da "Chave de API da Web"
+// do projeto (FIREBASE_API_KEY), que é um identificador público. Já a exclusão
+// de contas usa o Firebase Admin SDK, que exige a conta de serviço em
+// FIREBASE_SERVICE_ACCOUNT (secreta; veja abaixo).
 //
-// Os dados do site (nome, perfil, tópicos, etc.) continuam 100% no MongoDB.
-// O Firebase guarda apenas e-mail + senha de quem tem conta vinculada.
+// Os dados do site (nome, perfil, tópicos etc.) ficam no MongoDB. O Firebase
+// guarda apenas e-mail e senha de quem tem conta vinculada.
 //
-// Usa o fetch nativo do Node 18+ (o server.js já depende disso).
+// Usa o fetch nativo do Node 18+.
 
 const BASE_URL = "https://identitytoolkit.googleapis.com/v1/accounts";
 
@@ -19,6 +19,13 @@ class FirebaseError extends Error {
     this.name = "FirebaseError";
     this.code = code; // ex.: EMAIL_EXISTS, INVALID_LOGIN_CREDENTIALS
   }
+}
+
+// Códigos que o Firebase devolve quando e-mail ou senha estão errados.
+const INVALID_CREDENTIAL_CODES = ["INVALID_LOGIN_CREDENTIALS", "INVALID_PASSWORD", "EMAIL_NOT_FOUND"];
+
+function isInvalidCredentials(err) {
+  return !!err && INVALID_CREDENTIAL_CODES.includes(err.code);
 }
 
 function isConfigured() {
@@ -94,10 +101,10 @@ function sendPasswordReset(email) {
 }
 
 // ── Exclusão de contas (Admin SDK) ──────────────────────────────────────────
-// Apagar uma conta SEM saber a senha dela exige credencial de administrador:
-// a "conta de serviço" do projeto, colada inteira (JSON) em
-// FIREBASE_SERVICE_ACCOUNT. É secreta — só em variável de ambiente, nunca no
-// código nem no GitHub. O SDK só é carregado quando esta função é usada.
+// Apagar uma conta sem saber a senha dela exige credencial de administrador: a
+// "conta de serviço" do projeto, colada inteira (JSON) em
+// FIREBASE_SERVICE_ACCOUNT. É secreta: só deve ficar em variável de ambiente,
+// nunca no código nem no GitHub. O SDK só é carregado quando esta função é usada.
 let adminAuth = null;
 
 function isAdminConfigured() {
@@ -126,6 +133,7 @@ async function deleteUser(uid) {
 module.exports = {
   FirebaseError,
   isConfigured,
+  isInvalidCredentials,
   isAdminConfigured,
   deleteUser,
   signUp,

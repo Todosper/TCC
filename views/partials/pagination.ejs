@@ -1,25 +1,23 @@
-<% /*
-  Partial de paginação reutilizável.
-  Espera receber:
-    - page: número da página atual (1-based)
+<%#
+  Paginação reutilizável. Recebe:
+    - page: número da página atual (começa em 1)
     - totalPages: total de páginas
-    - baseQuery: string de query já montada (sem "page"), ex.: "cat=duvidas&q=prova"
-                 (pode ser "" se não houver outros filtros)
-    - basePath: caminho da rota, ex.: "/forum" ou "/admin/users"
-*/ %>
+    - baseQuery: query string já montada, sem "page" (ex.: "cat=duvidas&q=prova"); pode ser ""
+    - basePath: caminho da rota (ex.: "/forum" ou "/admin/users")
+%>
 <% if (totalPages > 1) { %>
-  <div class="pagination">
+  <nav class="pagination" aria-label="Paginação">
     <% var sep = baseQuery ? baseQuery + '&' : ''; %>
     <% if (page > 1) { %>
-      <a href="<%= basePath %>?<%= sep %>page=<%= page - 1 %>" class="btn btn-outline btn-sm">← Anterior</a>
+      <a href="<%= basePath %>?<%= sep %>page=<%= page - 1 %>" class="btn btn-outline btn-sm" rel="prev"><span aria-hidden="true">←</span> Anterior</a>
     <% } else { %>
-      <span class="btn btn-outline btn-sm" style="opacity:0.4;pointer-events:none;">← Anterior</span>
+      <span class="btn btn-outline btn-sm pagination-disabled" aria-disabled="true"><span aria-hidden="true">←</span> Anterior</span>
     <% } %>
-    <span class="pagination-info">Página <%= page %> de <%= totalPages %></span>
+    <span class="pagination-info" aria-current="page">Página <%= page %> de <%= totalPages %></span>
     <% if (page < totalPages) { %>
-      <a href="<%= basePath %>?<%= sep %>page=<%= page + 1 %>" class="btn btn-outline btn-sm">Próxima →</a>
+      <a href="<%= basePath %>?<%= sep %>page=<%= page + 1 %>" class="btn btn-outline btn-sm" rel="next">Próxima <span aria-hidden="true">→</span></a>
     <% } else { %>
-      <span class="btn btn-outline btn-sm" style="opacity:0.4;pointer-events:none;">Próxima →</span>
+      <span class="btn btn-outline btn-sm pagination-disabled" aria-disabled="true">Próxima <span aria-hidden="true">→</span></span>
     <% } %>
-  </div>
+  </nav>
 <% } %>

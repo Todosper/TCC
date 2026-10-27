@@ -11,10 +11,8 @@ const commentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Toda vez que um tópico é aberto, os comentários são buscados por `topic` e
-// ordenados por `createdAt` (ver routes/main.js) — este índice composto
-// atende exatamente esse padrão. Também acelera a contagem agregada de
-// respostas por tópico usada nas listagens do fórum.
+// Os comentários de um tópico são buscados por `topic` e ordenados por
+// `createdAt`; o mesmo índice atende a contagem de respostas por tópico.
 commentSchema.index({ topic: 1, createdAt: 1 });
 
 module.exports = mongoose.model("Comment", commentSchema);

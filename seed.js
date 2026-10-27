@@ -1,4 +1,9 @@
-// Script para popular o banco.
+// Popula o banco com dados de exemplo para desenvolvimento.
+//
+// ATENÇÃO: o script APAGA as coleções de usuários, tópicos, comentários, FAQ,
+// sugestões, denúncias e notificações antes de recriá-las, e cria uma conta de
+// administrador com senha conhecida (admin@ifsul.edu.br / admin123). Por isso
+// ele se recusa a rodar com NODE_ENV=production.
 require("dotenv").config();
 const mongoose = require("mongoose");
 const connectDB = require("./config/db");
@@ -10,20 +15,25 @@ const FaqCategory = require("./models/FaqCategory");
 const Faq = require("./models/Faq");
 
 async function seed() {
+  if (process.env.NODE_ENV === "production") {
+    console.error("O seed apaga dados e cria um administrador com senha conhecida; ele não roda com NODE_ENV=production.");
+    process.exit(1);
+  }
+
   await connectDB();
 
   console.log("Limpando coleções...");
-  const colecoes = ["users", "topics", "comments", "faqcategories", "faqs"];
+  const colecoes = ["users", "topics", "comments", "faqcategories", "faqs", "suggestions", "reports", "notifications"];
   for (const nome of colecoes) {
     await mongoose.connection.db.dropCollection(nome).catch(() => {});
   }
 
   console.log("Criando usuários...");
   const users = await User.create([
-    { name: "Maria Silva", email: "maria.silva@aluno.ifsul.edu.br", password: "senha123", role: "estudante", status: "ativo" },
-    { name: "João Pereira", email: "joao.pereira@aluno.ifsul.edu.br", password: "senha123", role: "estudante", status: "ativo" },
+    { name: "Maria Silva", email: "maria.silva@academico.ifsul.edu.br", password: "senha123", role: "estudante", status: "ativo" },
+    { name: "João Pereira", email: "joao.pereira@academico.ifsul.edu.br", password: "senha123", role: "estudante", status: "ativo" },
     { name: "Prof. Carlos Andrade", email: "carlos.andrade@ifsul.edu.br", password: "senha123", role: "professor", status: "ativo" },
-    { name: "Lucas Ferreira", email: "lucas.ferreira@aluno.ifsul.edu.br", password: "senha123", role: "estudante", status: "bloqueado" },
+    { name: "Lucas Ferreira", email: "lucas.ferreira@academico.ifsul.edu.br", password: "senha123", role: "estudante", status: "bloqueado" },
     { name: "Prof. Ana Lima", email: "ana.lima@ifsul.edu.br", password: "senha123", role: "professor", status: "ativo" },
     { name: "Coordenação Acadêmica", email: "coordenacao@ifsul.edu.br", password: "senha123", role: "staff", status: "ativo" },
     { name: "Admin", email: "admin@ifsul.edu.br", password: "admin123", role: "staff", status: "ativo", isAdmin: true },
@@ -94,7 +104,7 @@ async function seed() {
   console.log("  Senha: admin123");
   console.log("");
   console.log("Estudante para teste:");
-  console.log("  E-mail: maria.silva@aluno.ifsul.edu.br");
+  console.log("  E-mail: maria.silva@academico.ifsul.edu.br");
   console.log("  Senha: senha123");
 
   await mongoose.connection.close();

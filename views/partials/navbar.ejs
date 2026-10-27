@@ -1,7 +1,19 @@
+<%
+  var navItems = [
+    { href: '/', label: 'Início' },
+    { href: '/forum', label: 'Fórum' },
+    { href: '/faq', label: 'FAQ' },
+    { href: '/sugestoes', label: 'Sugestões' }
+  ];
+  var navPath = (typeof currentPath === 'string') ? currentPath : '';
+  var navActive = function (href) {
+    return href === '/' ? navPath === '/' : (navPath === href || navPath.indexOf(href + '/') === 0);
+  };
+%>
 <header class="navbar">
   <div class="container">
     <div class="navbar-inner">
-      <a href="/" class="navbar-logo">
+      <a href="/" class="navbar-logo" aria-label="IFSul Campus Bagé — página inicial">
         <div class="ifsul-mark" aria-hidden="true">
           <i class="ifsul-mark-red"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
         </div>
@@ -11,112 +23,88 @@
         </div>
       </a>
 
-      <nav class="navbar-links">
-        <a href="/"
-          class="navbar-link <%= (typeof activePage !== 'undefined' && activePage === 'home') ? 'active' : '' %>">Início</a>
-        <a href="/forum"
-          class="navbar-link <%= (typeof activePage !== 'undefined' && activePage === 'forum') ? 'active' : '' %>">Fórum</a>
-        <a href="/faq"
-          class="navbar-link <%= (typeof activePage !== 'undefined' && activePage === 'faq') ? 'active' : '' %>">FAQ</a>
-        <a href="/sugestoes"
-          class="navbar-link <%= (typeof activePage !== 'undefined' && activePage === 'suggestions') ? 'active' : '' %>">Sugestões</a>
+      <nav class="navbar-links" aria-label="Principal">
+        <% navItems.forEach(function (item) { %>
+          <a href="<%= item.href %>" class="navbar-link <%= navActive(item.href) ? 'active' : '' %>"<%- navActive(item.href) ? ' aria-current="page"' : '' %>><%= item.label %></a>
+        <% }) %>
       </nav>
 
       <div class="navbar-right">
+        <% if (loggedIn && isAdmin) { %>
+          <a href="/admin" class="navbar-pill-btn">
+            <%- icon('shield', 16) %>
+            <span>Admin</span>
+          </a>
+        <% } %>
+        <button id="a11y-toggle" class="navbar-a11y-btn" type="button" data-a11y-toggle aria-haspopup="dialog" aria-expanded="false" aria-controls="a11y-panel">
+          <%- icon('personStanding', 18) %>
+          <span>Acessibilidade</span>
+        </button>
+        <button id="theme-toggle" class="navbar-icon-btn" type="button" title="Modo escuro" aria-label="Mudar para o modo escuro">
+          <%- icon('moon', 18) %>
+        </button>
         <% if (loggedIn) { %>
-          <% if (isAdmin) { %>
-            <a href="/admin" class="navbar-pill-btn">
-              <%- icon('shield', 16) %>
-                <span>Admin</span>
-            </a>
-            <% } %>
-              <button id="a11y-toggle" class="navbar-a11y-btn" type="button" data-a11y-toggle aria-haspopup="dialog" aria-expanded="false" aria-controls="a11y-panel">
-                <%- icon('personStanding', 18) %>
-                  <span>Acessibilidade</span>
-              </button>
-              <button id="theme-toggle" class="navbar-icon-btn" type="button" title="Modo escuro">
-                <%- icon('moon', 18) %>
-              </button>
-              <div class="relative">
-                <button id="notif-btn" class="navbar-icon-btn" type="button">
-                  <%- icon('bell', 20) %>
-                    <% if (unreadCount > 0) { %>
-                      <span id="notif-badge" class="navbar-badge"><%= unreadCount > 9 ? '9+' : unreadCount %></span>
-                    <% } else { %>
-                      <span id="notif-badge" class="navbar-badge" style="display:none;">0</span>
-                    <% } %>
-                </button>
-                <div id="notif-dropdown" class="notif-dropdown">
-                  <div class="notif-header">
-                    <span>Notificações</span>
-                    <button id="notif-mark-all" type="button" title="Marcar todas como lidas"><%- icon('check', 16) %></button>
-                    <button id="notif-close" type="button"><%- icon('x', 16) %></button>
-                  </div>
-                  <div id="notif-list">
-                    <div class="notif-empty">Nenhuma notificação</div>
-                  </div>
-                </div>
+          <div class="relative notif-wrap">
+            <button id="notif-btn" class="navbar-icon-btn" type="button" aria-expanded="false" aria-controls="notif-dropdown" aria-label="<%= unreadCount > 0 ? 'Notificações (' + unreadCount + ' não lidas)' : 'Notificações' %>">
+              <%- icon('bell', 20) %>
+              <span id="notif-badge" class="navbar-badge" aria-hidden="true"<%- unreadCount > 0 ? '' : ' style="display:none;"' %>><%= unreadCount > 9 ? '9+' : unreadCount %></span>
+            </button>
+            <div id="notif-dropdown" class="notif-dropdown" role="region" aria-label="Notificações">
+              <div class="notif-header">
+                <span>Notificações</span>
+                <button id="notif-mark-all" type="button" title="Marcar todas como lidas" aria-label="Marcar todas como lidas"><%- icon('check', 16) %></button>
+                <button id="notif-close" type="button" title="Fechar notificações" aria-label="Fechar notificações"><%- icon('x', 16) %></button>
               </div>
-              <a href="/profile" class="navbar-avatar-btn">
-                <div class="navbar-avatar-icon"><%- icon('user', 16) %></div>
-                <span class="navbar-avatar-name">
-                  <%= isAdmin ? 'Admin' : 'Meu Perfil' %>
-                </span>
-              </a>
-              <form method="POST" action="/logout" style="display:inline;">
-                <%- include('csrf-field') %>
-                <button type="submit" class="navbar-pill-btn"><%- icon('logOut', 16) %></button>
-              </form>
-              <% } else { %>
-                <button id="a11y-toggle" class="navbar-a11y-btn" type="button" data-a11y-toggle aria-haspopup="dialog" aria-expanded="false" aria-controls="a11y-panel">
-                  <%- icon('personStanding', 18) %>
-                    <span>Acessibilidade</span>
-                </button>
-                <button id="theme-toggle" class="navbar-icon-btn" type="button" title="Modo escuro">
-                  <%- icon('moon', 18) %>
-                </button>
-                <a href="/login" class="navbar-btn-outline">
-                  <%- icon('logIn', 16) %>
-                    Entrar
-                </a>
-                <a href="/register" class="navbar-btn-white">
-                  <%- icon('userPlus', 16) %>
-                    Cadastrar
-                </a>
-                <% } %>
+              <div id="notif-list" aria-live="polite">
+                <div class="notif-empty">Nenhuma notificação</div>
+              </div>
+            </div>
+          </div>
+          <a href="/profile" class="navbar-avatar-btn"<%- navPath === '/profile' ? ' aria-current="page"' : '' %>>
+            <div class="navbar-avatar-icon"><%- icon('user', 16) %></div>
+            <span class="navbar-avatar-name"><%= isAdmin ? 'Admin' : 'Meu Perfil' %></span>
+          </a>
+          <form method="POST" action="/logout" class="navbar-logout-form">
+            <%- include('csrf-field') %>
+            <button type="submit" class="navbar-pill-btn" title="Sair" aria-label="Sair da conta"><%- icon('logOut', 16) %></button>
+          </form>
+        <% } else { %>
+          <a href="/login" class="navbar-btn-outline">
+            <%- icon('logIn', 16) %>
+            Entrar
+          </a>
+          <a href="/register" class="navbar-btn-white">
+            <%- icon('userPlus', 16) %>
+            Cadastrar
+          </a>
+        <% } %>
       </div>
 
-      <button id="mobile-menu-toggle" class="navbar-mobile-toggle" type="button">
+      <button id="mobile-menu-toggle" class="navbar-mobile-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Menu principal">
         <%- icon('menu', 24) %>
       </button>
     </div>
   </div>
 
-  <div id="mobile-menu" class="navbar-mobile-menu">
-    <a href="/"
-      class="navbar-mobile-link <%= (typeof activePage !== 'undefined' && activePage === 'home') ? 'active' : '' %>">Início</a>
-    <a href="/forum"
-      class="navbar-mobile-link <%= (typeof activePage !== 'undefined' && activePage === 'forum') ? 'active' : '' %>">Fórum</a>
-    <a href="/faq"
-      class="navbar-mobile-link <%= (typeof activePage !== 'undefined' && activePage === 'faq') ? 'active' : '' %>">FAQ</a>
-    <a href="/sugestoes"
-      class="navbar-mobile-link <%= (typeof activePage !== 'undefined' && activePage === 'suggestions') ? 'active' : '' %>">Sugestões</a>
+  <nav id="mobile-menu" class="navbar-mobile-menu" aria-label="Menu principal (celular)">
+    <% navItems.forEach(function (item) { %>
+      <a href="<%= item.href %>" class="navbar-mobile-link <%= navActive(item.href) ? 'active' : '' %>"<%- navActive(item.href) ? ' aria-current="page"' : '' %>><%= item.label %></a>
+    <% }) %>
     <div class="navbar-mobile-divider">
-      <button type="button" class="navbar-mobile-link navbar-mobile-link-icon" data-a11y-toggle data-a11y-from-mobile aria-haspopup="dialog" aria-expanded="false" aria-controls="a11y-panel" style="width:100%;"><%- icon('personStanding', 16) %>Acessibilidade</button>
+      <button type="button" class="navbar-mobile-link navbar-mobile-link-icon navbar-mobile-full" data-a11y-toggle data-a11y-from-mobile aria-haspopup="dialog" aria-expanded="false" aria-controls="a11y-panel"><%- icon('personStanding', 16) %>Acessibilidade</button>
       <% if (loggedIn) { %>
         <% if (isAdmin) { %>
           <a href="/admin" class="navbar-mobile-link navbar-mobile-link-icon"><%- icon('shield', 16) %>Painel Admin</a>
-          <% } %>
-            <a href="/profile" class="navbar-mobile-link navbar-mobile-link-icon"><%- icon('user', 16) %>Meu Perfil</a>
-            <form method="POST" action="/logout">
-              <%- include('csrf-field') %>
-              <button type="submit" class="navbar-mobile-link navbar-mobile-link-icon" style="width:100%;"><%- icon('logOut', 16) %>Sair</button>
-            </form>
-            <% } else { %>
-              <a href="/login" class="navbar-mobile-link navbar-mobile-link-icon"><%- icon('logIn', 16) %>Entrar</a>
-              <a href="/register" class="navbar-mobile-link navbar-mobile-link-icon navbar-mobile-cta"><%-
-                  icon('userPlus', 16) %>Criar Conta</a>
-              <% } %>
+        <% } %>
+        <a href="/profile" class="navbar-mobile-link navbar-mobile-link-icon"><%- icon('user', 16) %>Meu Perfil</a>
+        <form method="POST" action="/logout">
+          <%- include('csrf-field') %>
+          <button type="submit" class="navbar-mobile-link navbar-mobile-link-icon navbar-mobile-full"><%- icon('logOut', 16) %>Sair</button>
+        </form>
+      <% } else { %>
+        <a href="/login" class="navbar-mobile-link navbar-mobile-link-icon"><%- icon('logIn', 16) %>Entrar</a>
+        <a href="/register" class="navbar-mobile-link navbar-mobile-link-icon navbar-mobile-cta"><%- icon('userPlus', 16) %>Criar Conta</a>
+      <% } %>
     </div>
-  </div>
+  </nav>
 </header>

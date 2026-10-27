@@ -7,26 +7,18 @@ const { doubleCsrf } = require("csrf-csrf");
 // um usuário/admin logado só porque o cookie de sessão é enviado
 // automaticamente pelo navegador.
 //
-// IMPORTANTE (bug real encontrado e corrigido durante os testes): a
-// biblioteca amarra o token a um "identificador de sessão" (getSessionIdentifier).
-// A princípio usei req.session.id, mas a sessão do express-session aqui é
-// configurada com saveUninitialized:false e só passa a ser persistida de
-// verdade DEPOIS do login (routes/auth.js só grava req.session.user ali).
-// Ou seja, para qualquer visitante ainda não logado — exatamente quem usa os
-// formulários de login, cadastro e "esqueci senha" — o id da sessão mudava a
-// cada requisição, e o token gerado no GET nunca validava no POST seguinte.
-// Isso bloquearia login e cadastro de TODO MUNDO, não é um detalhe pequeno.
-//
-// A correção: usar um identificador próprio, gerado uma única vez e guardado
-// em um cookie dedicado (independente do cookie de sessão do app), estável
-// mesmo antes do login e sem exigir saveUninitialized:true (que criaria uma
-// sessão no MongoDB para todo visitante anônimo/bot, mesmo sem necessidade).
+// A biblioteca amarra o token a um "identificador de sessão". Aqui o
+// identificador é um valor aleatório guardado em um cookie próprio, em vez do
+// id da sessão do express-session: como a sessão só é gravada depois do login
+// (saveUninitialized: false), o id dela mudaria a cada requisição de quem ainda
+// não está logado, e os formulários de login e cadastro nunca validariam. O
+// cookie próprio é estável antes do login e não cria sessões no banco para
+// visitantes anônimos.
 const CSRF_IDENTIFIER_COOKIE = "csrf_id";
 
 function getOrCreateCsrfIdentifier(req, res) {
-  // Evita gerar (e sobrescrever via Set-Cookie) um novo id duas vezes na
-  // mesma requisição — attachCsrfToken e doubleCsrfProtection podem ambos
-  // chamar esta função na mesma requisição GET.
+  // attachCsrfToken e doubleCsrfProtection podem chamar esta função na mesma
+  // requisição; o id é guardado em `req` para não gerar dois cookies diferentes.
   if (req._csrfIdentifier) return req._csrfIdentifier;
 
   let id = req.cookies[CSRF_IDENTIFIER_COOKIE];
@@ -46,10 +38,8 @@ function getOrCreateCsrfIdentifier(req, res) {
 
 const { doubleCsrfProtection: _doubleCsrfProtection, generateCsrfToken, invalidCsrfTokenError } = doubleCsrf({
   getSecret: () => process.env.SESSION_SECRET,
-  // getSessionIdentifier só recebe `req` na assinatura da lib; usamos
-  // req.res (referência padrão e sempre presente que o próprio Express monta
-  // entre req/res) para poder setar o cookie de identificador quando ainda
-  // não existir, sem depender de estado externo.
+  // A biblioteca só passa `req` a esta função; `req.res` dá acesso à resposta
+  // para criar o cookie do identificador quando ele ainda não existe.
   getSessionIdentifier: (req) => getOrCreateCsrfIdentifier(req, req.res),
   cookieName: "csrf_token",
   cookieOptions: {
@@ -60,23 +50,19 @@ const { doubleCsrfProtection: _doubleCsrfProtection, generateCsrfToken, invalidC
   },
   size: 64,
   ignoredMethods: ["GET", "HEAD", "OPTIONS"],
-  // O padrão da biblioteca só procura o token no header "x-csrf-token", que
-  // faz sentido para chamadas via fetch/AJAX. Este projeto usa formulários
-  // HTML tradicionais (<form method="POST">), então o token chega no corpo
-  // da requisição, no campo oculto "_csrf" (ver views/partials/csrf-field.ejs).
-  getCsrfTokenFromRequest: (req) => req.body && req.body._csrf,
+  // O token chega no campo oculto "_csrf" dos formulários (views/partials/
+  // csrf-field.ejs) ou, nas chamadas fetch, no cabeçalho "x-csrf-token".
+  getCsrfTokenFromRequest: (req) => (req.body && req.body._csrf) || req.headers["x-csrf-token"],
 });
 
-// Garante que o identificador CSRF (cookie próprio, independente da sessão)
-// já existe ANTES da lib rodar, tanto em GET (para gerar o token da página)
-// quanto em POST (para validar) — evita qualquer ambiguidade de ordem.
+// Garante que o identificador CSRF já existe antes da biblioteca rodar, tanto
+// em GET (para gerar o token da página) quanto em POST (para validar).
 function doubleCsrfProtection(req, res, next) {
   getOrCreateCsrfIdentifier(req, res);
   _doubleCsrfProtection(req, res, next);
 }
 
-// Disponibiliza `csrfToken` em toda view EJS, para que os formulários
-// consigam incluir o campo oculto sem cada rota precisar gerar isso na mão.
+// Disponibiliza `csrfToken` em toda view EJS para os formulários.
 function attachCsrfToken(req, res, next) {
   res.locals.csrfToken = generateCsrfToken(req, res);
   next();

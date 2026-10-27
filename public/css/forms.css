@@ -95,7 +95,7 @@
 .auth-footer-text a { color: var(--green-700); font-weight: 500; }
 .auth-footer-text a:hover { color: var(--green-800); }
 
-.auth-terms { font-size: 0.75rem; color: var(--gray-400); text-align: center; margin-top: 1rem; }
+.auth-terms { font-size: 0.75rem; color: var(--gray-500); text-align: center; margin-top: 1rem; }
 
 .pw-strength { display: flex; gap: 0.25rem; margin-top: 0.25rem; }
 .pw-strength-bar { height: 0.25rem; flex: 1; border-radius: 9999px; background: var(--gray-200); }
@@ -108,7 +108,7 @@
   display: flex; align-items: center; justify-content: center;
   margin: 0 auto 1rem;
 }
-.auth-success-icon svg { width: 1.75rem; height: 1.75rem; color: var(--green-600); }
+.auth-success-icon svg { width: 1.75rem; height: 1.75rem; color: var(--green-700); }
 .auth-success-block h2 { font-weight: 600; color: var(--gray-800); margin: 0 0 0.5rem; }
 .auth-success-block p { color: var(--gray-500); font-size: 0.875rem; margin: 0 0 1.5rem; }
 .auth-success-block a { color: var(--green-700); font-weight: 500; font-size: 0.875rem; }
@@ -129,7 +129,21 @@
   font-size: 0.75rem; font-weight: 500; border-radius: 9999px;
   border: 1px solid var(--green-200);
 }
-.profile-status { display: flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; color: var(--green-600); }
+.profile-status { display: flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; color: var(--green-700); }
 .status-dot { width: 0.375rem; height: 0.375rem; border-radius: 9999px; background: var(--green-500); }
 
 .profile-section-title { font-weight: 600; color: var(--gray-800); margin: 0 0 1.25rem; }
+
+/* Ícone das páginas de erro (403, 404, 429, 500) */
+.auth-icon.auth-icon-danger { background: var(--red-100); }
+.auth-icon.auth-icon-danger svg { color: var(--red-700); }
+.auth-icon.auth-icon-box { background: var(--gray-200); }
+.dark .auth-icon.auth-icon-danger { background: #2d1212; }
+.dark .auth-icon.auth-icon-danger svg { color: #fca5a5; }
+.dark .auth-icon.auth-icon-box { background: var(--bg-hover); }
+
+/* O link-botão dentro do bloco de sucesso mantém a cor do botão. */
+.auth-success-block a.btn { color: #fff; font-size: inherit; font-weight: 600; }
+.dark .auth-success-block a:not(.btn) { color: var(--green-dm-primary); }
+.dark .field-error { color: #fca5a5; }
+.auth-sub.auth-sub-spaced { margin: 0 0 1.5rem; }

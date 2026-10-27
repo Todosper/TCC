@@ -77,7 +77,7 @@
 .navbar-badge {
   position: absolute; top: 0.25rem; right: 0.25rem;
   width: 1rem; height: 1rem;
-  background: var(--red-500); color: #fff;
+  background: var(--red-600); color: #fff;
   font-size: 0.625rem; font-weight: 700;
   border-radius: 9999px;
   display: flex; align-items: center; justify-content: center;
@@ -155,15 +155,16 @@
   z-index: 60;
 }
 .notif-dropdown.open { display: block; }
-.notif-header { padding: 0.75rem; cursor: pointer; border-bottom: 1px solid var(--gray-50); text-decoration: none; display: block; color: inherit; }
+.notif-item { display: block; padding: 0.75rem; border-bottom: 1px solid var(--gray-100); color: inherit; text-decoration: none; cursor: pointer; }
+.notif-item:last-child { border-bottom: 0; }
 .notif-item:hover { background: var(--gray-50); }
 .notif-item.notif-unread { background: var(--green-50); border-left: 3px solid var(--green-600); }
 .notif-item p:first-child { font-size: 0.875rem; color: var(--gray-800); margin: 0; }
 .notif-item p:last-child { font-size: 0.75rem; color: var(--gray-500); margin: 0.125rem 0 0; }
-.notif-empty { padding: 2rem 0.75rem; text-align: center; font-size: 0.875rem; color: var(--gray-400); }
+.notif-empty { padding: 2rem 0.75rem; text-align: center; font-size: 0.875rem; color: var(--gray-500); }
 .notif-header { padding: 0.75rem; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .notif-header span { font-size: 0.875rem; font-weight: 600; color: var(--gray-800); flex: 1; }
-.notif-header button { background: none; border: none; color: var(--gray-400); cursor: pointer; display: flex; padding: 0.25rem; border-radius: 0.25rem; }
+.notif-header button { background: none; border: none; color: var(--gray-500); cursor: pointer; display: flex; padding: 0.25rem; border-radius: 0.25rem; }
 .notif-header button:hover { color: var(--green-700); background: var(--green-50); }
 
 /* Mobile menu toggle */
@@ -213,7 +214,7 @@
   color: var(--gray-400);
   margin-top: 4rem;
 }
-.footer-inner { padding: 2.5rem 0; }
+.footer-inner { padding: 2.5rem 1rem; }
 .footer-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -247,4 +248,21 @@
   padding-top: 1.5rem;
   font-size: 0.75rem;
   text-align: center;
+}
+
+/* ── Menu e notificações no celular ─────────────────────────────────────
+   Abaixo de 768px o grupo da direita some, mas o sino de notificações
+   continua visível ao lado do botão do menu. */
+.navbar-logout-form { margin: 0; display: flex; }
+.navbar-mobile-full { width: 100%; font-family: inherit; }
+@media (max-width: 767px) {
+  .navbar-right { display: flex; margin-left: auto; }
+  .navbar-right > :not(.notif-wrap) { display: none; }
+  .notif-dropdown {
+    position: fixed;
+    top: calc(4.65rem + 5px + 0.25rem);
+    left: 0.75rem; right: 0.75rem;
+    width: auto; max-height: calc(100vh - 7rem); max-height: calc(100dvh - 7rem);
+    overflow-y: auto;
+  }
 }

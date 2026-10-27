@@ -1,5 +1,3 @@
-<% var activePage = 'home'; %>
-
 <section class="hero">
   <div class="container">
     <div class="hero-layout">
@@ -43,19 +41,29 @@
         <div class="quick-card-desc">Respostas para dúvidas comuns</div>
       </div>
     </a>
-    <a href="/register" class="quick-card qc-purple">
-      <div class="quick-card-icon"><%- icon('userPlus', 20) %></div>
-      <div>
-        <div class="quick-card-label">Criar Conta</div>
-        <div class="quick-card-desc">Junte-se à comunidade acadêmica</div>
-      </div>
-    </a>
+    <% if (loggedIn) { %>
+      <a href="/sugestoes" class="quick-card qc-purple">
+        <div class="quick-card-icon"><%- icon('lightbulb', 20) %></div>
+        <div>
+          <div class="quick-card-label">Sugestões para o Campus</div>
+          <div class="quick-card-desc">Proponha melhorias e apoie ideias</div>
+        </div>
+      </a>
+    <% } else { %>
+      <a href="/register" class="quick-card qc-purple">
+        <div class="quick-card-icon"><%- icon('userPlus', 20) %></div>
+        <div>
+          <div class="quick-card-label">Criar Conta</div>
+          <div class="quick-card-desc">Junte-se à comunidade acadêmica</div>
+        </div>
+      </a>
+    <% } %>
   </div>
 </section>
 
 <section class="container home-main">
   <div class="home-grid">
-    <!-- Tópicos recentes -->
+    <%# Tópicos recentes %>
     <div>
       <div class="section-header">
         <h2 class="section-title">Tópicos Recentes</h2>
@@ -76,8 +84,8 @@
               <div class="topic-row-meta">
                 <span class="badge <%= catCls(t.category) %>"><%= catLabel(t.category) %></span>
                 <span><%= t.authorName %></span>
-                <span class="with-icon"><%- icon('messageSquare', 12) %><%= t.replies || 0 %></span>
-                <span><%= t.createdAt.toLocaleDateString('pt-BR') %></span>
+                <span class="with-icon"><%- icon('messageSquare', 12) %><%= t.replies || 0 %><span class="sr-only"> <%= plural(t.replies || 0, 'resposta', 'respostas') %></span></span>
+                <span><%= fmtDate(t.createdAt) %></span>
               </div>
             </div>
           </a>
@@ -89,7 +97,7 @@
       </div>
     </div>
 
-    <!-- Sidebar -->
+    <%# Barra lateral %>
     <div class="sidebar-stack">
       <div class="card card-pad">
         <div class="section-header" style="margin-bottom:1rem;">
@@ -98,7 +106,7 @@
         </div>
         <div>
           <% faqs.forEach(function(f) { %>
-            <a href="/faq" class="faq-mini-item">
+            <a href="/faq#faq-<%= f._id %>" class="faq-mini-item">
               <%- icon('helpCircle', 16) %>
               <span><%= f.question %></span>
             </a>

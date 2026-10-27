@@ -9,27 +9,29 @@
         <p class="footer-desc">Sistema de Fórum e FAQ para a comunidade acadêmica do Instituto Federal
           Sul-rio-grandense, Campus Bagé.</p>
       </div>
-      <div>
-        <h3 class="footer-heading">Navegação</h3>
+      <nav aria-label="Rodapé">
+        <h2 class="footer-heading">Navegação</h2>
         <ul class="footer-list">
           <li><a href="/">Início</a></li>
           <li><a href="/forum">Fórum</a></li>
           <li><a href="/faq">FAQ</a></li>
-          <li><a href="/sugestoes">Sugestão</a></li>
+          <li><a href="/sugestoes">Sugestões</a></li>
+          <li><a href="/acessibilidade">Acessibilidade</a></li>
+          <li><a href="/privacidade">Privacidade e termos de uso</a></li>
         </ul>
-      </div>
+      </nav>
       <div>
-        <h3 class="footer-heading">Contato</h3>
+        <h2 class="footer-heading">Contato</h2>
         <ul class="footer-list">
           <li>Av. Leonel de Moura Brizola, 2501</li>
           <li>Bagé — RS, CEP 96418-400</li>
-          <li class="footer-email">bage@ifsul.edu.br</li>
-          <li>(53) 3247-8400</li>
+          <li class="footer-email"><a href="mailto:bage@ifsul.edu.br">bage@ifsul.edu.br</a></li>
+          <li><a href="tel:+555332478400">(53) 3247-8400</a></li>
         </ul>
       </div>
     </div>
     <div class="footer-bottom">
-      © 2026 Instituto Federal Sul-rio-grandense — Campus Bagé. Sistema desenvolvido para uso acadêmico interno.
+      © <%= new Date().getFullYear() %> Instituto Federal Sul-rio-grandense — Campus Bagé. Sistema desenvolvido para uso acadêmico interno.
     </div>
   </div>
 </footer>

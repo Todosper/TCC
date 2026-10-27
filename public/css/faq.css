@@ -17,7 +17,7 @@
 .faq-search { position: relative; margin: 0 auto 2rem; max-width: 36rem; }
 .faq-search svg.search-icon {
   position: absolute; left: 0.875rem; top: 50%; transform: translateY(-50%);
-  width: 1rem; height: 1rem; color: var(--gray-400);
+  width: 1rem; height: 1rem; color: var(--gray-500);
 }
 .faq-search input {
   width: 100%;
@@ -25,12 +25,12 @@
   font-size: 0.875rem; border-radius: 0.75rem;
   border: 1px solid var(--gray-300);
   box-shadow: var(--shadow-sm);
-  outline: none;
+  outline: 2px solid transparent;
 }
 .faq-search input:focus { box-shadow: 0 0 0 2px var(--green-600); border-color: transparent; }
 .faq-search-clear {
   position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
-  background: none; border: none; cursor: pointer; color: var(--gray-400); display: flex;
+  background: none; border: none; cursor: pointer; color: var(--gray-500); display: flex;
 }
 .faq-search-clear:hover { color: var(--gray-600); }
 
@@ -55,11 +55,11 @@
 }
 .faq-cat-card svg { width: 1.25rem; height: 1.25rem; color: var(--gray-600); }
 .faq-cat-card .cname { font-size: 0.75rem; font-weight: 500; line-height: 1.3; color: var(--gray-700); }
-.faq-cat-card .ccount { font-size: 0.75rem; color: var(--gray-400); }
+.faq-cat-card .ccount { font-size: 0.75rem; color: var(--gray-500); }
 .faq-cat-card.active { border-color: var(--green-600); background: var(--green-50); box-shadow: var(--shadow-sm); }
 .faq-cat-card.active svg { color: var(--green-700); }
 .faq-cat-card.active .cname { color: var(--green-800); }
-.faq-cat-card.active .ccount { color: var(--green-600); }
+.faq-cat-card.active .ccount { color: var(--green-700); }
 
 .faqcat-emerald { background: var(--emerald-50); border-color: var(--emerald-200) !important; }
 .faqcat-blue { background: var(--blue-50); border-color: var(--blue-200) !important; }
@@ -87,7 +87,7 @@
 }
 .faq-q-icon svg { width: 0.875rem; height: 0.875rem; color: var(--green-700); }
 .faq-q-text { font-weight: 500; color: var(--gray-800); font-size: 0.875rem; }
-.faq-chevron { width: 1rem; height: 1rem; color: var(--gray-400); flex-shrink: 0; transition: transform 0.2s ease; }
+.faq-chevron { width: 1rem; height: 1rem; color: var(--gray-500); flex-shrink: 0; transition: transform 0.2s ease; }
 .faq-item.open .faq-chevron { transform: rotate(180deg); }
 
 .faq-answer { padding: 0 1.25rem 1.25rem; display: none; }
@@ -95,13 +95,11 @@
 .faq-answer-inner { padding-left: 2.25rem; border-left: 2px solid var(--green-200); margin-left: 0.75rem; }
 .faq-answer-inner p { color: var(--gray-600); font-size: 0.875rem; line-height: 1.6; margin: 0; }
 .faq-helpful { margin-top: 0.75rem; padding-left: 2.25rem; margin-left: 0.75rem; display: flex; align-items: center; gap: 0.75rem; }
-.faq-helpful span { font-size: 0.75rem; color: var(--gray-400); }
-.faq-helpful button, .faq-helpful a {
+.faq-helpful span { font-size: 0.75rem; color: var(--gray-500); }
+.faq-helpful a {
   font-size: 0.75rem; font-weight: 500; background: none; border: none; cursor: pointer;
   display: flex; align-items: center; gap: 0.25rem; text-decoration: none;
 }
-.faq-helpful .yes { color: var(--green-700); }
-.faq-helpful .yes:hover { color: var(--green-800); }
 .faq-helpful .no { color: var(--gray-500); }
 .faq-helpful .no:hover { color: var(--gray-700); }
 .faq-helpful svg { width: 0.875rem; height: 0.875rem; }
@@ -112,3 +110,8 @@
 }
 .faq-cta h3 { font-weight: 600; margin: 0 0 0.5rem; }
 .faq-cta p { color: var(--green-100); font-size: 0.875rem; margin: 0 0 1rem; }
+
+/* O botão "Buscar" fica à direita; o "x" de limpar a busca fica antes dele. */
+.faq-search-clear { right: 6rem; }
+.dark .faq-cat-card.active { background: var(--green-dm-bg); border-color: var(--green-dm-primary); }
+.dark .faq-cat-card.active .ccount { color: var(--green-dm-text); }

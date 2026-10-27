@@ -2,14 +2,17 @@
 
 <div class="admin-table-toolbar">
   <h2>Perguntas Frequentes (<%= faqs.length %>)</h2>
-  <a href="/admin/faq/novo" class="btn btn-primary btn-sm"><%- icon('plus', 16) %>Nova Pergunta</a>
+  <div class="toolbar-actions">
+    <a href="/admin/faq-categorias" class="btn btn-outline btn-sm"><%- icon('edit', 16) %>Categorias</a>
+    <a href="/admin/faq/novo" class="btn btn-primary btn-sm"><%- icon('plus', 16) %>Nova Pergunta</a>
+  </div>
 </div>
 
 <div class="admin-table-wrap">
   <table class="admin-table">
     <thead>
       <tr>
-        <th style="width:50%;">Pergunta</th>
+        <th class="col-wide">Pergunta</th>
         <th class="sm-table-cell">Categoria</th>
         <th class="right">Ações</th>
       </tr>
@@ -21,10 +24,10 @@
           <td class="sm-table-cell"><span class="text-xs text-gray-500"><%= f.category ? f.category.name : '-' %></span></td>
           <td class="right">
             <div class="table-actions">
-              <a href="/admin/faq/<%= f._id %>/editar" class="table-icon-btn edit"><%- icon('edit', 14) %></a>
-              <form method="POST" action="/admin/faq/<%= f._id %>/excluir" onsubmit="return confirm('Excluir esta pergunta?');" style="display:inline;">
+              <a href="/admin/faq/<%= f._id %>/editar" class="table-icon-btn edit" title="Editar pergunta" aria-label="Editar pergunta: <%= f.question %>"><%- icon('edit', 14) %></a>
+              <form method="POST" action="/admin/faq/<%= f._id %>/excluir" data-confirm="Excluir esta pergunta?" class="inline-form">
                 <%- include('../partials/csrf-field') %>
-                <button type="submit" class="table-icon-btn danger"><%- icon('trash2', 14) %></button>
+                <button type="submit" class="table-icon-btn danger" title="Excluir pergunta" aria-label="Excluir pergunta: <%= f.question %>"><%- icon('trash2', 14) %></button>
               </form>
             </div>
           </td>

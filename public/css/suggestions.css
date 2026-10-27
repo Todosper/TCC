@@ -20,7 +20,7 @@
 .suggestion-status.not_implemented { color:var(--red-800); background:var(--red-100); }
 .status-reason { margin:.75rem 0 0; padding:.7rem .75rem; color:var(--red-700); background:var(--red-50); border-left:3px solid var(--red-500); border-radius:.25rem; font-size:.8rem; line-height:1.45; }
 .suggestion-empty { padding:3rem 1rem; text-align:center; }
-.suggestion-empty svg { color:var(--green-600); margin-bottom:.75rem; }
+.suggestion-empty svg { color: var(--green-700); margin-bottom:.75rem; }
 .suggestion-empty h3 { margin:0 0 .4rem; color:var(--gray-800); }
 .suggestion-empty p { color:var(--gray-500); margin:0 0 1rem; }
 .suggestion-privacy { display:flex; gap:.75rem; padding:1rem; background:var(--green-50); border:1px solid var(--green-200); border-radius:.5rem; color:var(--green-800); font-size:.82rem; line-height:1.45; }

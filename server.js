@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const path = require("path");
+const mongoose = require("mongoose");
 const expressLayouts = require("express-ejs-layouts");
 const session = require("express-session");
 const MongoStore = require("connect-mongo");
@@ -11,10 +12,12 @@ const connectDB = require("./config/db");
 const { attachUser } = require("./middleware/auth");
 const icon = require("./config/icons");
 const { assetVersion } = require("./config/assets");
+const { catLabel, catCls } = require("./models/categories");
 const { doubleCsrfProtection, attachCsrfToken, invalidCsrfTokenError } = require("./middleware/csrf");
 
 const authRoutes = require("./routes/auth");
 const mainRoutes = require("./routes/main");
+const pageRoutes = require("./routes/pages");
 const profileRoutes = require("./routes/profile");
 const adminRoutes = require("./routes/admin");
 const notificationRoutes = require("./routes/notifications");
@@ -23,23 +26,34 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === "production";
 
-// Rede de segurança: no Express 4 uma Promise rejeitada dentro de um handler
-// `async` que não tenha try/catch (ex.: o banco cair no meio de uma consulta)
-// vira "unhandledRejection", e no Node 15+ isso DERRUBA o processo inteiro —
-// o site inteiro sai do ar até o Render reiniciar o serviço. Aqui só registramos
-// o erro; as rotas continuam sendo responsáveis por tratar os próprios erros.
+// No Express 4, uma Promise rejeitada dentro de um handler `async` sem
+// try/catch vira "unhandledRejection", e a partir do Node 15 isso derruba o
+// processo. Aqui o erro só é registrado; cada rota continua responsável por
+// tratar os próprios erros (veja middleware/asyncHandler.js).
 process.on("unhandledRejection", (reason) => {
   console.error("Promise rejeitada sem tratamento:", reason);
 });
 
 app.disable("x-powered-by");
+
+// ─── Variáveis disponíveis em todas as views ────────────────────────────────
 // Versão dos CSS/JS, usada pelo layout para montar /css/main.css?v=...
 app.locals.assetVersion = assetVersion;
+app.locals.catLabel = catLabel;
+app.locals.catCls = catCls;
+
+// Datas sempre no horário de Brasília, independentemente do fuso do servidor.
+const TIME_ZONE = "America/Sao_Paulo";
+const dateFormat = new Intl.DateTimeFormat("pt-BR", { timeZone: TIME_ZONE, day: "2-digit", month: "2-digit", year: "numeric" });
+const timeFormat = new Intl.DateTimeFormat("pt-BR", { timeZone: TIME_ZONE, hour: "2-digit", minute: "2-digit" });
+app.locals.fmtDate = (value) => (value ? dateFormat.format(new Date(value)) : "");
+app.locals.fmtDateTime = (value) => (value ? `${dateFormat.format(new Date(value))} ${timeFormat.format(new Date(value))}` : "");
+// plural(1, "resposta", "respostas") -> "resposta"
+app.locals.plural = (count, one, many) => (Number(count) === 1 ? one : many);
 
 // ─── Variáveis de ambiente obrigatórias ─────────────────────────────────────
-// Assim como já acontece para MONGODB_URI (ver config/db.js), o servidor não
-// deve subir sem um SESSION_SECRET forte definido explicitamente — nunca usar
-// um valor padrão fixo no código-fonte para isso.
+// Como MONGODB_URI (ver config/db.js), o SESSION_SECRET precisa ser definido
+// explicitamente; o servidor não sobe com um valor padrão fixo no código.
 if (!process.env.SESSION_SECRET) {
   console.error(
     "❌ SESSION_SECRET não foi definida no .env. Gere uma com:\n" +
@@ -57,41 +71,48 @@ app.set("views", path.join(__dirname, "views"));
 app.use(expressLayouts);
 app.set("layout", "layout");
 
-// Em produção, o app normalmente roda atrás de um proxy reverso que faz a
-// terminação HTTPS (ex.: Render, Railway, Nginx). Isso é necessário para que
-// o Express reconheça corretamente a conexão como segura (cookie "secure") e
-// para que req.ip reflita o IP real do visitante (usado no rate limiting).
-// IMPORTANTE: ajuste esse valor conforme a plataforma de hospedagem escolhida
-// caso o comportamento de req.ip não pareça correto em produção.
-if (process.env.NODE_ENV === "production") {
+// Em produção o app roda atrás de um proxy reverso que faz a terminação HTTPS
+// (Render, Railway, Nginx etc.). `trust proxy` faz o Express reconhecer a
+// conexão como segura (cookie "secure") e usar o IP real do visitante em
+// req.ip, que o limite de tentativas usa. O valor 1 considera um único proxy;
+// ajuste se a hospedagem tiver mais camadas na frente.
+if (isProduction) {
   app.set("trust proxy", 1);
 }
+
 // ─── Healthcheck (usado pelo self-ping) ──────────────────────────────────────
-// Fica ANTES de sessão/CSRF de propósito: o ping não deve tocar no MongoDB
-// nem gerar cookies.
+// Fica antes de sessão e CSRF para não consultar o MongoDB nem gerar cookies.
 app.get("/healthcheck", (req, res) => {
   res.status(200).send("OK");
 });
+
 // ─── Compressão (opcional) ───────────────────────────────────────────────────
-// Reduz bastante o tamanho de HTML/CSS/JS trafegado. O pacote "compression" não
-// vem instalado por padrão: rode `npm install compression` para ativar. Sem ele,
-// o site funciona exatamente como antes.
+// Reduz o tamanho de HTML, CSS e JS. É ativada automaticamente quando o pacote
+// "compression" está instalado (`npm install compression`).
 try {
   app.use(require("compression")());
 } catch (err) {
   if (err.code !== "MODULE_NOT_FOUND") throw err;
 }
 
+// ─── Cabeçalhos de segurança básicos ─────────────────────────────────────────
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  next();
+});
+
 // ─── Arquivos estáticos ──────────────────────────────────────────────────────
-// Ficam ANTES dos parsers, da sessão e do CSRF: um pedido de CSS/JS não precisa
-// passar por nada disso. Em produção, o navegador guarda os arquivos por 30 dias;
-// como o layout usa URLs versionadas (?v=hash), uma nova versão do site nunca
-// fica presa no cache.
+// Ficam antes dos parsers, da sessão e do CSRF: um pedido de CSS/JS não precisa
+// passar por nada disso. Em produção o navegador guarda os arquivos por 30
+// dias; como o layout usa URLs versionadas (?v=hash), uma nova versão do site
+// nunca fica presa no cache.
 app.use(
   express.static(path.join(__dirname, "public"), isProduction ? { maxAge: "30d", immutable: true } : {})
 );
-// Navegadores pedem /favicon.ico sozinhos; sem isto, cada pedido passava por
-// sessão + banco e terminava numa página 404 completa.
+// Navegadores pedem /favicon.ico por conta própria; responder aqui evita passar
+// por sessão e banco só para terminar numa página 404.
 app.get("/favicon.ico", (req, res) => res.status(204).end());
 
 // ─── Middlewares ─────────────────────────────────────────────────────────────
@@ -105,8 +126,8 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    // touchAfter: sem isso, o connect-mongo gravava no MongoDB a cada requisição
-    // só para renovar a validade da sessão. Agora renova no máximo 1x por dia.
+    // touchAfter: renova a validade da sessão no máximo 1x por dia, em vez de
+    // gravar no MongoDB a cada requisição.
     store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI, touchAfter: 24 * 3600 }),
     cookie: {
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
@@ -120,23 +141,24 @@ app.use(
 app.use(attachUser);
 
 // ─── Proteção CSRF ───────────────────────────────────────────────────────────
-// Precisa vir depois da sessão (usa req.session.id para amarrar o token) e
-// antes das rotas. attachCsrfToken gera/renova o token em toda resposta
-// (necessário até em GET, para que os formulários daquela página tenham o
-// token mais recente); doubleCsrfProtection valida o token em toda requisição
-// que muda estado (POST/PUT/PATCH/DELETE).
+// attachCsrfToken gera o token em toda resposta (os formulários da página
+// precisam dele, inclusive em GET); doubleCsrfProtection valida o token em toda
+// requisição que muda estado (POST/PUT/PATCH/DELETE).
 app.use(attachCsrfToken);
 app.use(doubleCsrfProtection);
 
-// Disponibiliza a função icon() em todas as views EJS
+// Disponibiliza icon() e o caminho atual (usado para marcar o item ativo do
+// menu) em todas as views.
 app.use((req, res, next) => {
   res.locals.icon = icon;
+  res.locals.currentPath = req.path;
   next();
 });
 
 // ─── Rotas ───────────────────────────────────────────────────────────────────
 app.use("/", authRoutes);
 app.use("/", mainRoutes);
+app.use("/", pageRoutes);
 app.use("/", profileRoutes);
 app.use("/", notificationRoutes);
 app.use("/admin", adminRoutes);
@@ -147,16 +169,15 @@ app.use((req, res) => {
 });
 
 // ─── Handler de erro global ──────────────────────────────────────────────────
-// Rede de segurança final: qualquer erro não tratado em uma rota (síncrono ou
-// passado explicitamente via next(err)) cai aqui em vez de travar a
-// requisição ou vazar detalhes internos para o navegador. Cada rota continua
-// devendo tratar seus próprios erros previsíveis (try/catch) — isto é só o
-// último resort para o que passar despercebido.
+// Recebe qualquer erro não tratado de uma rota (síncrono ou passado via
+// next(err)), para não travar a requisição nem expor detalhes internos ao
+// navegador. As rotas continuam tratando os próprios erros previsíveis.
 app.use((err, req, res, next) => {
   if (err === invalidCsrfTokenError || err?.code === "EBADCSRFTOKEN") {
     console.warn(`Token CSRF inválido/ausente em ${req.method} ${req.originalUrl}`);
     return res.status(403).render("403", {
       title: "Sessão expirada",
+      heading: "Sessão expirada",
       message: "Sua sessão de formulário expirou ou é inválida. Atualize a página e tente novamente.",
     });
   }
@@ -165,7 +186,7 @@ app.use((err, req, res, next) => {
   res.status(500).render("500", { title: "Erro" });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
 
   // ─── Self-ping: evita o spin-down do plano gratuito do Render ──────────────
@@ -173,7 +194,7 @@ app.listen(PORT, () => {
   const PING_URL = process.env.RENDER_EXTERNAL_URL || process.env.APP_URL;
   const PING_INTERVAL = 12 * 60 * 1000; // 12 minutos
 
-  if (process.env.NODE_ENV === "production" && PING_URL) {
+  if (isProduction && PING_URL) {
     setInterval(async () => {
       try {
         const res = await fetch(`${PING_URL}/healthcheck`, {
@@ -186,3 +207,20 @@ app.listen(PORT, () => {
     }, PING_INTERVAL);
   }
 });
+
+// Ao receber o sinal de encerramento (deploy/reinício), termina as requisições
+// em andamento e fecha a conexão com o banco antes de sair.
+function shutdown(signal) {
+  console.log(`Recebido ${signal}, encerrando...`);
+  server.close(async () => {
+    try {
+      await mongoose.connection.close();
+    } finally {
+      process.exit(0);
+    }
+  });
+  // Se algo ficar preso, não espera para sempre.
+  setTimeout(() => process.exit(0), 10000).unref();
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

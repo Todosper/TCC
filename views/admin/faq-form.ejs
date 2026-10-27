@@ -1,34 +1,42 @@
 <%- include('../partials/admin-header') %>
 
+<% var editing = !!(faq && faq._id); %>
 <div class="auth-header-row">
-  <a href="/admin/faq" class="auth-back-btn"><%- icon('arrowLeft', 16) %></a>
+  <a href="/admin/faq" class="auth-back-btn" aria-label="Voltar para a lista de perguntas" title="Voltar para a lista de perguntas"><%- icon('arrowLeft', 16) %></a>
   <div>
-    <h1 style="font-size:1.125rem;"><%= faq && faq._id ? 'Editar Pergunta' : 'Nova Pergunta' %></h1>
+    <h2 class="admin-form-title"><%= editing ? 'Editar Pergunta' : 'Nova Pergunta' %></h2>
   </div>
 </div>
 
-<form method="POST" action="<%= faq && faq._id ? '/admin/faq/' + faq._id + '/editar' : '/admin/faq/novo' %>" class="admin-form-card">
+<% if (errors.question || errors.answer || errors.category) { %>
+  <div class="auth-error" tabindex="-1" data-autofocus-error><%- icon('alertCircle', 16) %>Corrija os campos indicados abaixo e salve novamente.</div>
+<% } %>
+
+<form method="POST" action="<%= editing ? '/admin/faq/' + faq._id + '/editar' : '/admin/faq/novo' %>" class="admin-form-card">
   <%- include('../partials/csrf-field') %>
   <div class="field">
-    <label>Pergunta</label>
-    <input class="input <%= errors.question ? 'error' : '' %>" name="question" value="<%= faq ? faq.question : '' %>" placeholder="Digite a pergunta">
-    <% if (errors.question) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.question %></p><% } %>
+    <label for="faq-question">Pergunta</label>
+    <input class="input <%= errors.question ? 'error' : '' %>" id="faq-question" name="question" value="<%= faq ? faq.question : '' %>" placeholder="Digite a pergunta" required
+      <%- errors.question ? 'aria-invalid="true" aria-describedby="faq-question-error"' : '' %>>
+    <% if (errors.question) { %><p class="field-error" id="faq-question-error"><%- icon('alertCircle', 12) %><%= errors.question %></p><% } %>
   </div>
   <div class="field">
-    <label>Categoria</label>
-    <select class="input <%= errors.category ? 'error' : '' %>" name="category">
+    <label for="faq-category">Categoria</label>
+    <select class="input <%= errors.category ? 'error' : '' %>" id="faq-category" name="category" required
+      <%- errors.category ? 'aria-invalid="true" aria-describedby="faq-category-error"' : '' %>>
       <option value="">Selecione...</option>
       <% categories.forEach(function(c) { %>
         <% var selectedId = faq && faq.category ? (faq.category._id || faq.category).toString() : ''; %>
         <option value="<%= c._id %>" <%= selectedId === c._id.toString() ? 'selected' : '' %>><%= c.name %></option>
       <% }) %>
     </select>
-    <% if (errors.category) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.category %></p><% } %>
+    <% if (errors.category) { %><p class="field-error" id="faq-category-error"><%- icon('alertCircle', 12) %><%= errors.category %></p><% } %>
   </div>
   <div class="field">
-    <label>Resposta</label>
-    <textarea class="input <%= errors.answer ? 'error' : '' %>" name="answer" rows="6" placeholder="Digite a resposta"><%= faq ? faq.answer : '' %></textarea>
-    <% if (errors.answer) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.answer %></p><% } %>
+    <label for="faq-answer">Resposta</label>
+    <textarea class="input <%= errors.answer ? 'error' : '' %>" id="faq-answer" name="answer" rows="6" placeholder="Digite a resposta" required
+      <%- errors.answer ? 'aria-invalid="true" aria-describedby="faq-answer-error"' : '' %>><%= faq ? faq.answer : '' %></textarea>
+    <% if (errors.answer) { %><p class="field-error" id="faq-answer-error"><%- icon('alertCircle', 12) %><%= errors.answer %></p><% } %>
   </div>
   <div class="flex gap-3">
     <button type="submit" class="btn btn-primary"><%- icon('check', 16) %>Salvar</button>

@@ -1,8 +1,7 @@
 const mongoose = require("mongoose");
 
 // Denúncias de conteúdo do fórum (tópico ou comentário), feitas por qualquer
-// usuário autenticado. Resolve P-29 da auditoria: antes não existia nenhum
-// mecanismo para um usuário sinalizar conteúdo problemático a um admin.
+// usuário autenticado e revisadas pela moderação.
 const reportSchema = new mongoose.Schema(
   {
     // Um report é sempre sobre um Topic OU um Comment, nunca os dois.
@@ -24,8 +23,8 @@ const reportSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Acelera a fila de moderação (mais recentes/pendentes primeiro) e evita que
-// a mesma pessoa denuncie o mesmo conteúdo repetidamente sem necessidade.
+// O primeiro índice atende a fila de moderação (por status e data); o segundo
+// atende a checagem de denúncia repetida da mesma pessoa sobre o mesmo conteúdo.
 reportSchema.index({ status: 1, createdAt: -1 });
 reportSchema.index({ reporter: 1, topic: 1, comment: 1 });
 

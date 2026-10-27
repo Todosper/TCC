@@ -12,15 +12,17 @@ const topicSchema = new mongoose.Schema(
     content: { type: String, required: true, trim: true, minlength: 30, maxlength: 5000 },
     tags: [{ type: String, trim: true }],
     author: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    authorName: { type: String, required: true }, // cache do nome p/ exibição rápida
+    authorName: { type: String, required: true }, // cópia do nome para exibição sem consulta extra
     views: { type: Number, default: 0 },
     locked: { type: Boolean, default: false },
+    // Resposta marcada como solução pelo autor do tópico (ou pela moderação).
+    solvedComment: { type: mongoose.Schema.Types.ObjectId, ref: "Comment", default: null },
   },
   { timestamps: true }
 );
 
-// Virtual: é "recente" se foi criado nas últimas 48h
-// NOTE: Não usar o nome `isNew` porque Mongoose já o utiliza internamente.
+// "Recente" = criado nas últimas 48h. O nome `isNew` não pode ser usado porque
+// o Mongoose já o utiliza internamente.
 topicSchema.virtual("isRecent").get(function () {
   if (!this.createdAt) return true;
   const diffMs = Date.now() - this.createdAt.getTime();
@@ -30,20 +32,16 @@ topicSchema.virtual("isRecent").get(function () {
 topicSchema.set("toJSON", { virtuals: true });
 topicSchema.set("toObject", { virtuals: true });
 
-// Índices alinhados aos padrões de consulta reais do app (ver routes/main.js
-// e routes/admin.js): listagem por data (padrão), filtro por categoria
-// combinado com data, e ordenação por popularidade. Sem eles, o MongoDB faz
-// uma varredura completa da coleção a cada listagem — imperceptível com
-// poucos tópicos, mas cada vez mais caro conforme o fórum cresce (ver
-// seção 9 da auditoria, especialmente os Cenários C/D).
+// Índices das consultas do app: listagem por data (padrão), filtro por
+// categoria combinado com data e ordenação por popularidade.
 topicSchema.index({ createdAt: -1 });
 topicSchema.index({ category: 1, createdAt: -1 });
-// Ordenação por popularidade: `views` sozinho tem MUITOS empates (todo tópico novo
-// tem 0 visualizações), e com empates a paginação do MongoDB pode repetir ou
-// pular tópicos entre uma página e outra. O desempate por data deixa a ordem
-// estável, e estes índices cobrem exatamente essa ordenação (com e sem filtro
-// de categoria). O antigo índice só em `views` passou a ser redundante.
+// Ordenação por popularidade: `views` sozinho tem muitos empates (todo tópico
+// novo começa com 0), e com empates a paginação poderia repetir ou pular
+// tópicos. O desempate por data deixa a ordem estável.
 topicSchema.index({ views: -1, createdAt: -1 });
 topicSchema.index({ category: 1, views: -1, createdAt: -1 });
+// Tópicos de um autor (aba "Minha atividade" do perfil).
+topicSchema.index({ author: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Topic", topicSchema);

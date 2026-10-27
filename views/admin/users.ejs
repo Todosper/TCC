@@ -1,95 +1,106 @@
 <%- include('../partials/admin-header') %>
+<% var myId = currentUser ? String(currentUser.id) : ''; %>
 
-  <% if (deleteError) { %>
-    <div class="auth-error"><%- icon('alertCircle', 16) %>Não foi possível excluir a conta no Firebase, então o usuário NÃO foi excluído. Tente novamente em instantes.</div>
-  <% } %>
+<% if (notice) { %>
+  <div class="auth-error" tabindex="-1" data-autofocus-error><%- icon('alertCircle', 16) %><%= notice %></div>
+<% } %>
 
-  <div class="admin-table-toolbar">
-    <h2>Usuários (<%= total %>)</h2>
-    <form class="admin-search-box" method="GET" action="/admin/users">
-      <%- icon('search', 16) %>
-        <input type="text" name="q" value="<%= query %>" placeholder="Buscar por nome ou e-mail..."
-          onchange="this.form.submit()">
-    </form>
-  </div>
+<div class="admin-table-toolbar">
+  <h2>Usuários (<%= total %>)</h2>
+  <form class="admin-search-box" method="GET" action="/admin/users" role="search">
+    <%- icon('search', 16) %>
+    <label for="users-search" class="sr-only">Buscar usuários por nome ou e-mail</label>
+    <input type="search" id="users-search" name="q" value="<%= query %>" placeholder="Buscar por nome ou e-mail...">
+    <button type="submit" class="search-submit">Buscar</button>
+  </form>
+</div>
 
-  <div class="admin-table-wrap">
-    <table class="admin-table">
-      <thead>
+<div class="admin-table-wrap">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Usuário</th>
+        <th class="md-table-cell">Perfil</th>
+        <th class="sm-table-cell">Status</th>
+        <th class="right">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% users.forEach(function(u) { %>
+        <% var isMe = String(u._id) === myId; %>
         <tr>
-          <th>Usuário</th>
-          <th class="md-table-cell">Perfil</th>
-          <th class="sm-table-cell">Status</th>
-          <th class="right">Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% users.forEach(function(u) { %>
-          <tr>
-            <td>
-              <div class="table-user-cell">
-                <div class="table-user-avatar"><%- icon('user', 14) %></div>
-                <div>
-                  <div class="table-user-name">
-                    <%= u.name %>
-                      <%= u.isAdmin ? ' ★' : '' %>
-                  </div>
-                  <div class="table-user-email">
-                    <%= u.email %>
-                  </div>
+          <td>
+            <div class="table-user-cell">
+              <div class="table-user-avatar"><%- icon('user', 14) %></div>
+              <div>
+                <div class="table-user-name">
+                  <%= u.name %><%= u.isAdmin ? ' ★' : '' %><% if (u.isAdmin) { %><span class="sr-only"> (administrador)</span><% } %>
                 </div>
+                <div class="table-user-email"><%= u.email %></div>
               </div>
-            </td>
-            <td class="md-table-cell">
-              <form method="POST" action="/admin/users/<%= u._id %>/role" class="admin-role-form">
-                <%- include('../partials/csrf-field') %>
-                <select class="admin-role-select" name="role" onchange="this.form.submit()" title="Alterar perfil">
-                  <option value="estudante" <%= u.role === 'estudante' ? 'selected' : '' %>>Estudante</option>
-                  <option value="professor" <%= u.role === 'professor' ? 'selected' : '' %>>Professor(a)</option>
-                  <option value="staff" <%= u.role === 'staff' ? 'selected' : '' %>>Servidor(a) / Staff</option>
-                </select>
-              </form>
-            </td>
-            <td class="sm-table-cell">
-              <span class="status-pill <%= u.status === 'ativo' ? 'active' : 'blocked' %>">
-                <span class="dot"></span>
-                <%= u.status==='ativo' ? 'Ativo' : 'Bloqueado' %>
-              </span>
-            </td>
-            <td class="right">
-              <div class="table-actions">
-                    <!-- Toggle admin -->
-                    <form method="POST" action="/admin/users/<%= u._id %>/toggle-admin" style="display:inline;">
-                      <%- include('../partials/csrf-field') %>
-                      <button type="submit" class="table-icon-btn <%= u.isAdmin ? 'ok' : '' %>" title="<%= u.isAdmin ? 'Remover admin' : 'Tornar admin' %>">
-                        <%- icon('star', 14) %>
-                      </button>
-                    </form>
-                    <!-- Toggle status -->
-                    <form method="POST" action="/admin/users/<%= u._id %>/toggle-status" style="display:inline;">
-                      <%- include('../partials/csrf-field') %>
-                      <button type="submit" class="table-icon-btn <%= u.status === 'ativo' ? 'warn' : 'ok' %>">
-                        <%- u.status==='ativo' ? icon('lock', 14) : icon('unlock', 14) %>
-                      </button>
-                    </form>
-                    <!-- Excluir -->
-                    <form method="POST" action="/admin/users/<%= u._id %>/excluir"
-                      onsubmit="return confirm('Excluir este usuário? O nome e e-mail dele serão apagados, mas os tópicos, comentários e sugestões publicados permanecerão no sistema como de um \'Usuário removido\'. Esta ação não pode ser desfeita.');" style="display:inline;">
-                      <%- include('../partials/csrf-field') %>
-                      <button type="submit" class="table-icon-btn danger"><%- icon('trash2', 14) %></button>
-                    </form>
-              </div>
-            </td>
-          </tr>
-          <% }) %>
-      </tbody>
-    </table>
-  </div>
+            </div>
+          </td>
+          <td class="md-table-cell">
+            <form method="POST" action="/admin/users/<%= u._id %>/role" class="admin-role-form">
+              <%- include('../partials/csrf-field') %>
+              <label class="sr-only" for="role-<%= u._id %>">Perfil de <%= u.name %></label>
+              <select class="admin-role-select" id="role-<%= u._id %>" name="role" <%= isMe ? 'disabled' : '' %>>
+                <option value="estudante" <%= u.role === 'estudante' ? 'selected' : '' %>>Estudante</option>
+                <option value="professor" <%= u.role === 'professor' ? 'selected' : '' %>>Professor(a)</option>
+                <option value="staff" <%= u.role === 'staff' ? 'selected' : '' %>>Servidor(a) / Staff</option>
+              </select>
+              <% if (!isMe) { %>
+                <button type="submit" class="table-icon-btn ok" title="Salvar perfil" aria-label="Salvar o perfil de <%= u.name %>"><%- icon('check', 14) %></button>
+              <% } %>
+            </form>
+          </td>
+          <td class="sm-table-cell">
+            <span class="status-pill <%= u.status === 'ativo' ? 'active' : 'blocked' %>">
+              <span class="dot"></span>
+              <%= u.status === 'ativo' ? 'Ativo' : 'Bloqueado' %>
+            </span>
+          </td>
+          <td class="right">
+            <div class="table-actions">
+              <% if (!(u.isAdmin && isMe)) { %>
+                <form method="POST" action="/admin/users/<%= u._id %>/toggle-admin" class="inline-form"
+                  data-confirm="<%= u.isAdmin ? 'Remover o acesso de administrador de ' + u.name + '?' : 'Tornar ' + u.name + ' administrador(a)? Essa pessoa poderá moderar e gerenciar todo o sistema.' %>">
+                  <%- include('../partials/csrf-field') %>
+                  <button type="submit" class="table-icon-btn <%= u.isAdmin ? 'ok' : '' %>"
+                    title="<%= u.isAdmin ? 'Remover admin' : 'Tornar admin' %>" aria-label="<%= u.isAdmin ? 'Remover acesso de administrador de ' : 'Tornar administrador(a): ' %><%= u.name %>">
+                    <%- icon('star', 14) %>
+                  </button>
+                </form>
+              <% } %>
+              <% if (u.status !== 'ativo' || (!isMe && !u.isAdmin)) { %>
+                <form method="POST" action="/admin/users/<%= u._id %>/toggle-status" class="inline-form"
+                  data-confirm="<%= u.status === 'ativo' ? 'Bloquear ' + u.name + '? Essa pessoa não conseguirá mais entrar no sistema.' : '' %>">
+                  <%- include('../partials/csrf-field') %>
+                  <button type="submit" class="table-icon-btn <%= u.status === 'ativo' ? 'warn' : 'ok' %>"
+                    title="<%= u.status === 'ativo' ? 'Bloquear usuário' : 'Desbloquear usuário' %>" aria-label="<%= u.status === 'ativo' ? 'Bloquear ' : 'Desbloquear ' %><%= u.name %>">
+                    <%- u.status === 'ativo' ? icon('lock', 14) : icon('unlock', 14) %>
+                  </button>
+                </form>
+              <% } %>
+              <% if (!isMe) { %>
+                <form method="POST" action="/admin/users/<%= u._id %>/excluir" class="inline-form"
+                  data-confirm="Excluir este usuário? O nome e e-mail dele serão apagados, mas os tópicos, comentários e sugestões publicados permanecerão no sistema como de um 'Usuário removido'. Esta ação não pode ser desfeita.">
+                  <%- include('../partials/csrf-field') %>
+                  <button type="submit" class="table-icon-btn danger" title="Excluir usuário" aria-label="Excluir <%= u.name %>"><%- icon('trash2', 14) %></button>
+                </form>
+              <% } %>
+            </div>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
 
-  <div class="admin-footnote">
-    ★ = Administrador
-  </div>
+<div class="admin-footnote">
+  ★ = Administrador
+</div>
 
-  <%- include('../partials/pagination') %>
+<%- include('../partials/pagination') %>
 
-  <%- include('../partials/admin-footer') %>
+<%- include('../partials/admin-footer') %>

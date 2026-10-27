@@ -1,4 +1,11 @@
-<% var activePage = 'suggestions'; %>
+<%
+  var statusText = {
+    analysis: '🟡 Em análise',
+    planned: '🔵 Planejada',
+    implemented: '🟢 Implementada',
+    not_implemented: '🔴 Não será implementada'
+  };
+%>
 <div class="container-sm suggestions-page">
   <div class="suggestions-hero">
     <div>
@@ -8,29 +15,29 @@
     <% if (loggedIn) { %>
       <a href="/sugestoes/nova" class="btn btn-primary btn-lg"><%- icon('lightbulb', 16) %>Enviar sugestão</a>
     <% } else { %>
-      <a href="/login" class="btn btn-secondary">Entre para sugerir</a>
+      <a href="/login?next=%2Fsugestoes%2Fnova" class="btn btn-secondary">Entre para sugerir</a>
     <% } %>
   </div>
 
   <% if (typeof submitted !== 'undefined' && submitted) { %>
-    <div class="auth-success"><%- icon('checkCircle2', 16) %>Recebemos sua sugestão! Ela será publicada após a aprovação da administração.</div>
+    <div class="auth-success" role="status"><%- icon('checkCircle2', 16) %>Recebemos sua sugestão! Ela será publicada após a aprovação da administração. Você pode acompanhar o andamento em Meu Perfil, na aba “Minha atividade”.</div>
   <% } %>
 
   <% if (suggestions.length === 0) { %>
     <div class="card suggestion-empty">
       <%- icon('lightbulb', 48) %>
-      <h3>Ainda não há sugestões publicadas</h3>
+      <h2>Ainda não há sugestões publicadas</h2>
       <p>As propostas aprovadas pela administração aparecerão aqui.</p>
       <% if (loggedIn) { %><a href="/sugestoes/nova" class="btn btn-primary">Enviar a primeira sugestão</a><% } %>
     </div>
   <% } else { %>
     <div class="suggestions-list">
       <% suggestions.forEach(function(s) { %>
-        <article class="suggestion-card">
+        <article class="suggestion-card" id="sug-<%= s._id %>">
           <div class="suggestion-card-head">
             <h2><%= s.title %></h2>
             <span class="suggestion-status <%= s.status %>">
-              <%= s.status === 'analysis' ? '🟡 Em análise' : s.status === 'planned' ? '🔵 Planejada' : s.status === 'implemented' ? '🟢 Implementada' : '🔴 Não será implementada' %>
+              <%= statusText[s.status] || statusText.not_implemented %>
             </span>
           </div>
           <p class="suggestion-description"><%= s.description %></p>
@@ -40,17 +47,21 @@
           <div class="suggestion-actions">
             <div class="suggestion-meta">
               <span><%- icon('user', 13) %> <%= s.isAnonymous ? 'Anônimo' : s.authorName %></span>
-              <span><%- icon('calendar', 13) %> <%= (s.publishedAt || s.createdAt).toLocaleDateString('pt-BR') %></span>
+              <span><%- icon('calendar', 13) %> <%= fmtDate(s.publishedAt || s.createdAt) %></span>
             </div>
             <div class="flex items-center gap-2">
-              <span class="support-count"><%= s.supportCount %> <%= s.supportCount === 1 ? 'apoio' : 'apoios' %></span>
+              <span class="support-count" data-support-total><%= s.supportCount %> <%= plural(s.supportCount, 'apoio', 'apoios') %></span>
               <% if (loggedIn) { %>
-                <form method="POST" action="/sugestoes/<%= s._id %>/apoio">
+                <form method="POST" action="/sugestoes/<%= s._id %>/apoio" data-support-form>
                   <%- include('partials/csrf-field') %>
-                  <button class="support-button <%= s.hasSupported ? 'supported' : '' %>" type="submit" title="<%= s.hasSupported ? 'Remover apoio' : 'Apoiar sugestão' %>">
-                    <%- icon('thumbsUp', 15) %><%= s.hasSupported ? 'Apoiando' : 'Apoiar' %>
+                  <button class="support-button <%= s.hasSupported ? 'supported' : '' %>" type="submit" aria-pressed="<%= s.hasSupported ? 'true' : 'false' %>"
+                    title="<%= s.hasSupported ? 'Remover apoio' : 'Apoiar sugestão' %>" aria-label="Apoiar a sugestão “<%= s.title %>”">
+                    <%- icon('thumbsUp', 15) %><span data-support-label><%= s.hasSupported ? 'Apoiando' : 'Apoiar' %></span>
                   </button>
+                  <span class="sr-only" role="status" data-support-live></span>
                 </form>
+              <% } else { %>
+                <a href="/login?next=%2Fsugestoes" class="support-login-hint">Entre para apoiar</a>
               <% } %>
             </div>
           </div>

@@ -1,33 +1,45 @@
-<% var activePage = 'suggestions'; %>
-<div class="container-md" style="padding:2.5rem 1rem;">
+<% var hasErrors = !!(errors.title || errors.description || errors.identity); %>
+<div class="container-md page-pad">
   <div class="auth-header-row">
-    <a href="/sugestoes" class="auth-back-btn"><%- icon('arrowLeft', 16) %></a>
+    <a href="/sugestoes" class="auth-back-btn" aria-label="Voltar às sugestões" title="Voltar às sugestões"><%- icon('arrowLeft', 16) %></a>
     <div><h1>Enviar sugestão</h1><p>Ajude a construir um campus melhor para todos.</p></div>
   </div>
-  <div class="suggestion-privacy" style="margin-bottom:1.25rem;">
+  <div class="suggestion-privacy suggestion-privacy-spaced">
     <%- icon('shield', 17) %><span>Sua sugestão ficará pendente de aprovação e será visível apenas para administradores até a moderação. Não há comentários nesta área.</span>
   </div>
-  <% if (errors.general) { %><div class="auth-error"><%- icon('alertCircle', 16) %><%= errors.general %></div><% } %>
+  <% if (errors.general) { %>
+    <div class="auth-error" tabindex="-1" data-autofocus-error><%- icon('alertCircle', 16) %><%= errors.general %></div>
+  <% } else if (hasErrors) { %>
+    <div class="auth-error" tabindex="-1" data-autofocus-error><%- icon('alertCircle', 16) %>Corrija os campos indicados abaixo e envie novamente.</div>
+  <% } %>
   <form method="POST" action="/sugestoes/nova" class="card card-pad-lg create-form-card">
     <%- include('partials/csrf-field') %>
     <div class="field">
       <label for="suggestion-title">Título da sugestão</label>
-      <input class="input <%= errors.title ? 'error' : '' %>" id="suggestion-title" name="title" maxlength="120" value="<%= form.title || '' %>" placeholder="Ex.: Instalar mais pontos de recarga no campus">
-      <% if (errors.title) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.title %></p><% } %>
+      <input class="input <%= errors.title ? 'error' : '' %>" id="suggestion-title" name="title" maxlength="120" required
+        value="<%= form.title || '' %>" placeholder="Ex.: Instalar mais pontos de recarga no campus"
+        data-char-count="suggestion-title-count" data-max="120"
+        aria-describedby="suggestion-title-count<%= errors.title ? ' suggestion-title-error' : '' %>"<%- errors.title ? ' aria-invalid="true"' : '' %>>
+      <p class="field-hint" id="suggestion-title-count">0/120 caracteres</p>
+      <% if (errors.title) { %><p class="field-error" id="suggestion-title-error"><%- icon('alertCircle', 12) %><%= errors.title %></p><% } %>
     </div>
     <div class="field">
       <label for="suggestion-description">Descrição detalhada</label>
-      <textarea class="input <%= errors.description ? 'error' : '' %>" id="suggestion-description" name="description" maxlength="3000" rows="8" placeholder="Explique a ideia, o problema que ela resolve e como ela ajudaria a comunidade..."><%= form.description || '' %></textarea>
-      <% if (errors.description) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.description %></p><% } %>
+      <textarea class="input <%= errors.description ? 'error' : '' %>" id="suggestion-description" name="description" maxlength="3000" rows="8" required
+        placeholder="Explique a ideia, o problema que ela resolve e como ela ajudaria a comunidade..."
+        data-char-count="suggestion-desc-count" data-max="3000"
+        aria-describedby="suggestion-desc-count<%= errors.description ? ' suggestion-desc-error' : '' %>"<%- errors.description ? ' aria-invalid="true"' : '' %>><%= form.description || '' %></textarea>
+      <p class="field-hint" id="suggestion-desc-count">0/3000 caracteres</p>
+      <% if (errors.description) { %><p class="field-error" id="suggestion-desc-error"><%- icon('alertCircle', 12) %><%= errors.description %></p><% } %>
     </div>
-    <div class="field">
-      <label>Como deseja publicar?</label>
+    <fieldset class="field fieldset-plain">
+      <legend class="field-legend">Como deseja publicar?</legend>
       <div class="choice-group">
         <label class="radio-choice"><input type="radio" name="identity" value="named" <%= form.identity !== 'anonymous' ? 'checked' : '' %>><span><strong>Enviar com meu nome</strong><span>Seu nome será exibido na sugestão aprovada.</span></span></label>
         <label class="radio-choice"><input type="radio" name="identity" value="anonymous" <%= form.identity === 'anonymous' ? 'checked' : '' %>><span><strong>Enviar anonimamente</strong><span>Seu nome ficará oculto para a comunidade, mas será acessível aos administradores.</span></span></label>
       </div>
       <% if (errors.identity) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.identity %></p><% } %>
-    </div>
+    </fieldset>
     <div class="flex gap-3"><button type="submit" class="btn btn-primary btn-lg"><%- icon('send', 16) %>Enviar para aprovação</button><a href="/sugestoes" class="btn btn-outline">Cancelar</a></div>
   </form>
 </div>

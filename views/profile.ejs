@@ -1,46 +1,56 @@
-<div class="container-md" style="padding:2.5rem 1rem;">
+<%
+  var modLabel = { pending: 'Aguardando aprovação', rejected: 'Não aprovada' };
+  var statusLabel = { analysis: 'Em análise', planned: 'Planejada', implemented: 'Implementada', not_implemented: 'Não será implementada' };
+  var infoErrors = !!(errors.name || errors.email);
+%>
+<div class="container-md page-pad">
   <div class="profile-header">
     <div class="profile-avatar"><%- icon('user', 32) %></div>
     <div>
       <h1 class="profile-name"><%= user.name %></h1>
       <div class="profile-meta">
         <span class="profile-role-badge"><%= user.roleLabel() %></span>
-        <span class="profile-status">
-          <span class="status-dot"></span>
-          Conta ativa
-        </span>
       </div>
     </div>
   </div>
 
-  <div class="tabs" style="margin-bottom:1.5rem;">
-    <a href="/profile?tab=info" class="tab-btn <%= tab === 'info' ? 'active' : '' %>">Meus Dados</a>
-    <a href="/profile?tab=pw" class="tab-btn <%= tab === 'pw' ? 'active' : '' %>">Alterar Senha</a>
-  </div>
+  <nav class="tabs profile-tabs" aria-label="Seções do perfil">
+    <a href="/profile?tab=info" class="tab-btn <%= tab === 'info' ? 'active' : '' %>"<%- tab === 'info' ? ' aria-current="page"' : '' %>>Meus Dados</a>
+    <a href="/profile?tab=pw" class="tab-btn <%= tab === 'pw' ? 'active' : '' %>"<%- tab === 'pw' ? ' aria-current="page"' : '' %>>Alterar Senha</a>
+    <a href="/profile?tab=activity" class="tab-btn <%= tab === 'activity' ? 'active' : '' %>"<%- tab === 'activity' ? ' aria-current="page"' : '' %>>Minha atividade</a>
+  </nav>
 
   <% if (tab === 'info') { %>
     <div class="card card-pad-lg">
       <h2 class="profile-section-title">Informações Pessoais</h2>
       <% if (saved) { %>
-        <div class="auth-success"><%- icon('checkCircle2', 16) %>Dados salvos com sucesso!</div>
+        <div class="auth-success" role="status"><%- icon('checkCircle2', 16) %>Dados salvos com sucesso!</div>
+      <% } %>
+      <% if (infoErrors) { %>
+        <div class="auth-error" tabindex="-1" data-autofocus-error><%- icon('alertCircle', 16) %>Corrija os campos indicados abaixo e salve novamente.</div>
       <% } %>
       <form method="POST" action="/profile/info" class="auth-form-grid">
         <%- include('partials/csrf-field') %>
         <div class="field span-2">
-          <label>Nome completo</label>
-          <input class="input" name="name" value="<%= user.name %>">
+          <label for="profile-name">Nome completo</label>
+          <input class="input <%= errors.name ? 'error' : '' %>" id="profile-name" name="name" value="<%= form.name %>" autocomplete="name" required maxlength="100"
+            <%- errors.name ? 'aria-invalid="true" aria-describedby="profile-name-error"' : '' %>>
+          <% if (errors.name) { %><p class="field-error" id="profile-name-error"><%- icon('alertCircle', 12) %><%= errors.name %></p><% } %>
         </div>
         <div class="field span-2">
-          <label>E-mail</label>
-          <input class="input" name="email" type="email" value="<%= user.email %>" <%= user.firebaseUid ? 'readonly' : '' %>>
+          <label for="profile-email">E-mail</label>
+          <input class="input <%= errors.email ? 'error' : '' %>" id="profile-email" name="email" type="email" value="<%= form.email %>" autocomplete="email"
+            <%= user.firebaseUid ? 'readonly' : 'required' %>
+            aria-describedby="<%= user.firebaseUid ? 'profile-email-hint' : '' %><%= errors.email ? ' profile-email-error' : '' %>"<%- errors.email ? ' aria-invalid="true"' : '' %>>
+          <% if (user.firebaseUid) { %><p class="field-hint" id="profile-email-hint">O e-mail está vinculado à sua conta e não pode ser alterado aqui.</p><% } %>
+          <% if (errors.email) { %><p class="field-error" id="profile-email-error"><%- icon('alertCircle', 12) %><%= errors.email %></p><% } %>
         </div>
         <div class="field">
-          <label>Perfil</label>
-          <select class="input admin-role-disabled" disabled>
-            <option><%= user.roleLabel() %></option>
-          </select>
+          <label for="profile-role">Perfil</label>
+          <input class="input admin-role-disabled" id="profile-role" value="<%= user.roleLabel() %>" disabled aria-describedby="profile-role-hint">
+          <p class="field-hint" id="profile-role-hint">O perfil é definido pela administração.</p>
         </div>
-        <div class="span-2" style="margin-top:0.5rem;">
+        <div class="span-2 auth-submit-row">
           <button type="submit" class="btn btn-primary"><%- icon('check', 16) %>Salvar Alterações</button>
         </div>
       </form>
@@ -51,34 +61,97 @@
     <div class="card card-pad-lg">
       <h2 class="profile-section-title">Alterar Senha</h2>
       <% if (pwSaved) { %>
-        <div class="auth-success"><%- icon('checkCircle2', 16) %>Senha alterada com sucesso!</div>
+        <div class="auth-success" role="status"><%- icon('checkCircle2', 16) %>Senha alterada com sucesso! Se você estava conectado em outros dispositivos, essas sessões foram encerradas.</div>
       <% } %>
-      <form method="POST" action="/profile/senha" class="auth-form" style="max-width:24rem;">
+      <% if (errors.current || errors.next || errors.confirm) { %>
+        <div class="auth-error" tabindex="-1" data-autofocus-error><%- icon('alertCircle', 16) %>Corrija os campos indicados abaixo e tente novamente.</div>
+      <% } %>
+      <form method="POST" action="/profile/senha" class="auth-form profile-pw-form">
         <%- include('partials/csrf-field') %>
         <div class="field">
-          <label>Senha atual</label>
+          <label for="pw-current">Senha atual</label>
           <div class="field-wrap">
-            <input class="input has-right <%= errors.current ? 'error' : '' %>" name="current" id="pw-current" type="password" placeholder="••••••••">
+            <input class="input has-right <%= errors.current ? 'error' : '' %>" name="current" id="pw-current" type="password" autocomplete="current-password" required
+              <%- errors.current ? 'aria-invalid="true" aria-describedby="pw-current-error"' : '' %>>
             <button type="button" class="field-right" data-toggle-password="pw-current"><%- icon('eye', 16) %></button>
           </div>
-          <% if (errors.current) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.current %></p><% } %>
+          <% if (errors.current) { %><p class="field-error" id="pw-current-error"><%- icon('alertCircle', 12) %><%= errors.current %></p><% } %>
         </div>
         <div class="field">
-          <label>Nova senha</label>
-          <input class="input <%= errors.next ? 'error' : '' %>" name="next" type="password" placeholder="Mín. 8 caracteres">
-          <% if (errors.next) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.next %></p><% } %>
+          <label for="pw-next">Nova senha</label>
+          <input class="input <%= errors.next ? 'error' : '' %>" id="pw-next" name="next" type="password" autocomplete="new-password" required minlength="8"
+            aria-describedby="pw-next-hint<%= errors.next ? ' pw-next-error' : '' %>"<%- errors.next ? ' aria-invalid="true"' : '' %>>
+          <p class="field-hint" id="pw-next-hint">Mínimo de 8 caracteres.</p>
+          <% if (errors.next) { %><p class="field-error" id="pw-next-error"><%- icon('alertCircle', 12) %><%= errors.next %></p><% } %>
         </div>
         <div class="field">
-          <label>Confirmar nova senha</label>
-          <input class="input <%= errors.confirm ? 'error' : '' %>" name="confirm" type="password" placeholder="Repita a nova senha">
-          <% if (errors.confirm) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.confirm %></p><% } %>
+          <label for="pw-confirm">Confirmar nova senha</label>
+          <input class="input <%= errors.confirm ? 'error' : '' %>" id="pw-confirm" name="confirm" type="password" autocomplete="new-password" required
+            <%- errors.confirm ? 'aria-invalid="true" aria-describedby="pw-confirm-error"' : '' %>>
+          <% if (errors.confirm) { %><p class="field-error" id="pw-confirm-error"><%- icon('alertCircle', 12) %><%= errors.confirm %></p><% } %>
         </div>
         <button type="submit" class="btn btn-primary">Alterar Senha</button>
       </form>
     </div>
   <% } %>
 
-  <div style="margin-top:1.5rem;">
+  <% if (tab === 'activity') { %>
+    <div class="card card-pad-lg">
+      <h2 class="profile-section-title">Meus tópicos</h2>
+      <% if (activity.topics.length === 0) { %>
+        <p class="activity-empty">Você ainda não criou nenhum tópico. <a href="/forum/novo">Criar um tópico</a></p>
+      <% } else { %>
+        <ul class="activity-list">
+          <% activity.topics.forEach(function (t) { %>
+            <li>
+              <a href="/forum/topico/<%= t._id %>" class="activity-link"><%= t.title %></a>
+              <div class="activity-meta">
+                <span class="badge <%= catCls(t.category) %>"><%= catLabel(t.category) %></span>
+                <span><%= fmtDate(t.createdAt) %></span>
+                <span><%= t.replyCount %> <%= plural(t.replyCount, 'resposta', 'respostas') %></span>
+                <% if (t.solved) { %><span class="tag-solved"><%- icon('checkCircle2', 10) %>Resolvido</span><% } %>
+                <% if (t.locked) { %><span class="tag-locked"><%- icon('lock', 10) %>Encerrado</span><% } %>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </div>
+
+    <div class="card card-pad-lg activity-card-spaced">
+      <h2 class="profile-section-title">Minhas sugestões</h2>
+      <% if (activity.suggestions.length === 0) { %>
+        <p class="activity-empty">Você ainda não enviou nenhuma sugestão. <a href="/sugestoes/nova">Enviar uma sugestão</a></p>
+      <% } else { %>
+        <ul class="activity-list">
+          <% activity.suggestions.forEach(function (s) { %>
+            <li>
+              <% if (s.moderationStatus === 'approved') { %>
+                <a href="/sugestoes#sug-<%= s._id %>" class="activity-link"><%= s.title %></a>
+              <% } else { %>
+                <span class="activity-link-static"><%= s.title %></span>
+              <% } %>
+              <div class="activity-meta">
+                <span class="activity-status activity-<%= s.moderationStatus %>">
+                  <%= s.moderationStatus === 'approved' ? (statusLabel[s.status] || 'Publicada') : modLabel[s.moderationStatus] %>
+                </span>
+                <span><%= fmtDate(s.createdAt) %></span>
+                <% if (s.isAnonymous) { %><span>Publicação anônima</span><% } %>
+              </div>
+              <% if (s.moderationStatus === 'rejected' && s.rejectionReason) { %>
+                <p class="activity-reason"><strong>Motivo:</strong> <%= s.rejectionReason %></p>
+              <% } %>
+              <% if (s.moderationStatus === 'approved' && s.status === 'not_implemented' && s.statusReason) { %>
+                <p class="activity-reason"><strong>Justificativa:</strong> <%= s.statusReason %></p>
+              <% } %>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </div>
+  <% } %>
+
+  <div class="profile-logout">
     <form method="POST" action="/logout">
       <%- include('partials/csrf-field') %>
       <button type="submit" class="btn btn-outline"><%- icon('logOut', 16) %>Sair da Conta</button>

@@ -5,22 +5,26 @@
   <% var v = (typeof assetVersion !== 'undefined') ? assetVersion : '1'; %>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>
-    <%= title %> — Fórum / FAQ IFSul Bagé
-  </title>
+  <title><%= typeof title !== 'undefined' ? title : 'Início' %> — Fórum / FAQ IFSul Bagé</title>
   <script>
-    // Aplica dark antes de qualquer render para evitar flash
-    (function () { var t = localStorage.getItem("theme"); if (t === "dark" || t == null) document.documentElement.classList.add("dark") })();
-  </script>
-  <script>
-    // Aplica preferências de acessibilidade (tamanho do texto, alto contraste, destacar links) antes do render
-    (function () { try { var d = document.documentElement, s = parseInt(localStorage.getItem("a11y-font-size"), 10); if (s >= 80 && s <= 150 && s !== 100) d.style.fontSize = s + "%"; if (localStorage.getItem("a11y-contrast") === "1") d.classList.add("a11y-contrast"); if (localStorage.getItem("a11y-links") === "1") d.classList.add("a11y-links") } catch (e) { } })();
+    // Tema e preferências de acessibilidade são aplicados antes da primeira
+    // renderização, para a página não "piscar" em outro visual.
+    (function () {
+      var d = document.documentElement;
+      function get(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+      var theme = get("theme");
+      var systemDark = !window.matchMedia || window.matchMedia("(prefers-color-scheme: dark)").matches;
+      if (theme === "dark" || (theme !== "light" && systemDark)) d.classList.add("dark");
+      var size = parseInt(get("a11y-font-size"), 10);
+      if (size >= 80 && size <= 150 && size !== 100) d.style.fontSize = size + "%";
+      if (get("a11y-contrast") === "1") d.classList.add("a11y-contrast");
+      if (get("a11y-links") === "1") d.classList.add("a11y-links");
+      if (get("a11y-libras-visible") === "0") d.classList.add("a11y-libras-hidden");
+    })();
   </script>
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <%# Fontes: preconnect abre a conexão cedo, e a folha de estilo carrega SEM bloquear a
-      primeira renderização (media="print" + onload). Com display=swap o texto já aparece
-      na fonte padrão e troca quando a fonte chega. Antes isto era um @import dentro do
-      main.css, que só começava a baixar depois do main.css inteiro. %>
+  <%# As fontes carregam sem bloquear a primeira renderização (media="print" + onload);
+      com display=swap o texto aparece na fonte padrão e troca quando a fonte chega. %>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap" media="print" onload="this.media='all'">
@@ -37,38 +41,46 @@
 </head>
 
 <body>
+  <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
   <%- include('partials/navbar') %>
   <%- include('partials/accessibility-panel') %>
-    <main>
-      <%- body %>
-    </main>
-    <% if (typeof hideFooter==='undefined' || !hideFooter) { %>
-      <%- include('partials/footer') %>
-        <% } %>
-          <script src="/js/main.js?v=<%= v %>"></script>
+  <main id="conteudo" tabindex="-1">
+    <%- body %>
+  </main>
+  <%- include('partials/footer') %>
+  <script src="/js/main.js?v=<%= v %>"></script>
   <script src="/js/accessibility.js?v=<%= v %>"></script>
   <script>
-    // VLibras: carregado só DEPOIS que a página terminou de carregar.
-    // Antes era um <script src> comum, que bloqueava o fim do carregamento: os
-    // botões do site (menu, notificações, FAQ, acessibilidade) só passavam a
-    // funcionar depois que o servidor do governo (vlibras.gov.br) respondesse —
-    // e, se ele estivesse lento ou fora do ar, a página ficava "travada" e ainda
-    // dava erro de JavaScript (window.VLibras indefinido). Agora o site abre e
-    // responde de imediato; o widget de Libras aparece assim que estiver pronto.
+    // VLibras (tradutor de Libras do governo federal). O script só é baixado
+    // depois que a página terminou de carregar, para que o site não dependa do
+    // servidor do VLibras para responder. Se o botão de Libras estiver
+    // escondido nas preferências, o script nem é baixado; ele é carregado se a
+    // pessoa voltar a mostrar o botão (accessibility.js chama loadVLibras).
     (function () {
-      function loadVLibras() {
+      var state = null; // "loading" | "ready"
+      function fail() {
+        state = null;
+        document.dispatchEvent(new CustomEvent("vlibras:error"));
+      }
+      window.loadVLibras = function () {
+        if (state) return;
+        state = "loading";
         var s = document.createElement("script");
         s.src = "https://vlibras.gov.br/app/vlibras-plugin.js";
         s.async = true;
         s.onload = function () {
-          try { new window.VLibras.Widget("https://vlibras.gov.br/app"); } catch (e) { /* VLibras indisponível: o painel de acessibilidade avisa */ }
+          try { new window.VLibras.Widget("https://vlibras.gov.br/app"); state = "ready"; } catch (e) { fail(); }
         };
+        s.onerror = fail;
         document.body.appendChild(s);
+      };
+      function start() {
+        if (!document.documentElement.classList.contains("a11y-libras-hidden")) window.loadVLibras();
       }
-      if (document.readyState === "complete") loadVLibras();
-      else window.addEventListener("load", loadVLibras);
+      if (document.readyState === "complete") start();
+      else window.addEventListener("load", start);
     })();
   </script>
-  </body>
+</body>
 
 </html>

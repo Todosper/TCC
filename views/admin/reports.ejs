@@ -1,15 +1,19 @@
 <%- include('../partials/admin-header') %>
+<%
+  var reasonLabels = { spam: 'Spam / propaganda', offensive: 'Conteúdo ofensivo', personal_info: 'Dados pessoais expostos', off_topic: 'Fora do contexto', other: 'Outro motivo' };
+  var reportTabs = [
+    { id: 'pending', label: 'Pendentes' }, { id: 'reviewed', label: 'Revisadas' },
+    { id: 'dismissed', label: 'Descartadas' }, { id: 'all', label: 'Todas' }
+  ];
+%>
 <div class="admin-table-toolbar">
   <h2>Denúncias (<%= total %>)</h2>
-  <div class="tabs">
-    <a class="tab-btn <%= filter === 'pending' ? 'active' : '' %>" href="/admin/denuncias?filter=pending">Pendentes</a>
-    <a class="tab-btn <%= filter === 'reviewed' ? 'active' : '' %>" href="/admin/denuncias?filter=reviewed">Revisadas</a>
-    <a class="tab-btn <%= filter === 'dismissed' ? 'active' : '' %>" href="/admin/denuncias?filter=dismissed">Descartadas</a>
-    <a class="tab-btn <%= filter === 'all' ? 'active' : '' %>" href="/admin/denuncias?filter=all">Todas</a>
-  </div>
+  <nav class="tabs" aria-label="Filtrar denúncias">
+    <% reportTabs.forEach(function (t) { %>
+      <a class="tab-btn <%= filter === t.id ? 'active' : '' %>" href="/admin/denuncias?filter=<%= t.id %>"<%- filter === t.id ? ' aria-current="page"' : '' %>><%= t.label %></a>
+    <% }) %>
+  </nav>
 </div>
-
-<% var reasonLabels = { spam: 'Spam / propaganda', offensive: 'Conteúdo ofensivo', personal_info: 'Dados pessoais expostos', off_topic: 'Fora do contexto', other: 'Outro motivo' }; %>
 
 <div class="admin-table-wrap">
   <table class="admin-table">
@@ -19,16 +23,16 @@
         <tr>
           <td>
             <% if (r.targetType === 'comment' && r.comment) { %>
-              <span class="badge badge-gray" style="margin-right:0.375rem;">Comentário</span>
+              <span class="badge badge-gray badge-inline">Comentário</span>
               <div class="line-clamp-1 admin-table-title"><%= r.comment.text %></div>
             <% } else if (r.topic) { %>
-              <span class="badge badge-gray" style="margin-right:0.375rem;">Tópico</span>
+              <span class="badge badge-gray badge-inline">Tópico</span>
               <div class="line-clamp-1 admin-table-title"><%= r.topic.title %></div>
             <% } else { %>
               <span class="text-xs text-gray-500">Conteúdo original já foi removido</span>
             <% } %>
-            <% if (r.details) { %><div class="text-xs text-gray-500" style="margin-top:0.25rem;">"<%= r.details %>"</div><% } %>
-            <span class="text-xs text-gray-500"><%= r.createdAt.toLocaleDateString('pt-BR') %></span>
+            <% if (r.details) { %><div class="text-xs text-gray-500 report-details-text">“<%= r.details %>”</div><% } %>
+            <span class="text-xs text-gray-500"><%= fmtDate(r.createdAt) %></span>
           </td>
           <td class="sm-table-cell"><%= reasonLabels[r.reason] || r.reason %></td>
           <td class="md-table-cell">
@@ -39,19 +43,27 @@
           <td class="right">
             <div class="table-actions">
               <% if (r.topic) { %>
-                <a class="table-icon-btn edit" href="/forum/topico/<%= r.topic._id %>" title="Ver no fórum" target="_blank"><%- icon('eye', 14) %></a>
+                <a class="table-icon-btn edit" href="/forum/topico/<%= r.topic._id %><%= r.comment ? '#comentario-' + r.comment._id : '' %>" title="Ver no fórum (abre em nova aba)"
+                  aria-label="Ver o conteúdo denunciado no fórum (abre em nova aba)" target="_blank" rel="noopener"><%- icon('eye', 14) %></a>
               <% } %>
               <% if (r.status === 'pending') { %>
-                <form method="POST" action="/admin/denuncias/<%= r._id %>/status" style="display:inline;">
+                <form method="POST" action="/admin/denuncias/<%= r._id %>/status" class="inline-form">
                   <%- include('../partials/csrf-field') %>
                   <input type="hidden" name="status" value="reviewed">
-                  <button class="table-icon-btn edit" title="Marcar como revisada"><%- icon('checkCircle2', 14) %></button>
+                  <button type="submit" class="table-icon-btn edit" title="Marcar como revisada" aria-label="Marcar denúncia como revisada"><%- icon('checkCircle2', 14) %></button>
                 </form>
-                <form method="POST" action="/admin/denuncias/<%= r._id %>/status" style="display:inline;">
+                <form method="POST" action="/admin/denuncias/<%= r._id %>/status" class="inline-form">
                   <%- include('../partials/csrf-field') %>
                   <input type="hidden" name="status" value="dismissed">
-                  <button class="table-icon-btn danger" title="Descartar denúncia"><%- icon('x', 14) %></button>
+                  <button type="submit" class="table-icon-btn" title="Descartar denúncia" aria-label="Descartar denúncia"><%- icon('x', 14) %></button>
                 </form>
+                <% if (r.topic) { %>
+                  <form method="POST" action="/admin/denuncias/<%= r._id %>/excluir-conteudo" class="inline-form"
+                    data-confirm="<%= r.targetType === 'comment' ? 'Excluir o comentário denunciado?' : 'Excluir o tópico denunciado e todas as respostas?' %> Esta ação não pode ser desfeita.">
+                    <%- include('../partials/csrf-field') %>
+                    <button type="submit" class="table-icon-btn danger" title="Excluir o conteúdo denunciado" aria-label="Excluir o conteúdo denunciado"><%- icon('trash2', 14) %></button>
+                  </form>
+                <% } %>
               <% } %>
             </div>
           </td>
@@ -62,7 +74,7 @@
 </div>
 
 <% if (!reports.length) { %>
-  <div class="card suggestion-empty" style="margin-top:1rem">
+  <div class="card suggestion-empty admin-empty">
     <%- icon('flag', 40) %>
     <h3>Nenhuma denúncia nesta lista</h3>
     <p>Denúncias enviadas por usuários sobre tópicos ou comentários aparecerão aqui.</p>

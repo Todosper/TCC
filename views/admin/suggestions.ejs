@@ -1,23 +1,57 @@
 <%- include('../partials/admin-header') %>
+<%
+  var suggestionTabs = [
+    { id: 'pending', label: 'Pendentes' }, { id: 'approved', label: 'Aprovadas' },
+    { id: 'rejected', label: 'Rejeitadas' }, { id: 'all', label: 'Todas' }
+  ];
+%>
 <div class="admin-table-toolbar">
   <h2>Sugestões (<%= total %>)</h2>
-  <div class="tabs">
-    <a class="tab-btn <%= filter === 'pending' ? 'active' : '' %>" href="/admin/sugestoes?filter=pending">Pendentes</a>
-    <a class="tab-btn <%= filter === 'approved' ? 'active' : '' %>" href="/admin/sugestoes?filter=approved">Aprovadas</a>
-    <a class="tab-btn <%= filter === 'rejected' ? 'active' : '' %>" href="/admin/sugestoes?filter=rejected">Rejeitadas</a>
-    <a class="tab-btn <%= filter === 'all' ? 'active' : '' %>" href="/admin/sugestoes?filter=all">Todas</a>
-  </div>
+  <nav class="tabs" aria-label="Filtrar sugestões">
+    <% suggestionTabs.forEach(function (t) { %>
+      <a class="tab-btn <%= filter === t.id ? 'active' : '' %>" href="/admin/sugestoes?filter=<%= t.id %>"<%- filter === t.id ? ' aria-current="page"' : '' %>><%= t.label %></a>
+    <% }) %>
+  </nav>
 </div>
 <div class="admin-table-wrap">
-  <table class="admin-table"><thead><tr><th>Sugestão</th><th class="md-table-cell">Autor real</th><th class="sm-table-cell">Moderação</th><th class="sm-table-cell">Apoios</th><th class="right">Ações</th></tr></thead>
-  <tbody><% suggestions.forEach(function(s) { %><tr>
-    <td><div class="line-clamp-1 admin-table-title"><%= s.title %></div><span class="text-xs text-gray-500"><%= s.createdAt.toLocaleDateString('pt-BR') %><%= s.isAnonymous ? ' · publicação anônima' : '' %></span></td>
-    <td class="md-table-cell"><%= s.authorName %></td>
-    <td class="sm-table-cell"><span class="badge <%= s.moderationStatus === 'approved' ? 'badge-emerald' : s.moderationStatus === 'rejected' ? 'badge-red' : 'badge-amber' %>"><%= s.moderationStatus === 'approved' ? 'Aprovada' : s.moderationStatus === 'rejected' ? 'Rejeitada' : 'Pendente' %></span></td>
-    <td class="sm-table-cell"><%= s.supportCount %></td>
-    <td class="right"><div class="table-actions"><a class="table-icon-btn edit" href="/admin/sugestoes/<%= s._id %>" title="Avaliar"><%- icon('edit', 14) %></a><form method="POST" action="/admin/sugestoes/<%= s._id %>/excluir" onsubmit="return confirm('Excluir esta sugestão definitivamente?');"><%- include('../partials/csrf-field') %><button class="table-icon-btn danger" title="Excluir"><%- icon('trash2', 14) %></button></form></div></td>
-  </tr><% }) %></tbody></table>
+  <table class="admin-table">
+    <thead>
+      <tr><th>Sugestão</th><th class="md-table-cell">Autor real</th><th class="sm-table-cell">Moderação</th><th class="sm-table-cell">Apoios</th><th class="right">Ações</th></tr>
+    </thead>
+    <tbody>
+      <% suggestions.forEach(function(s) { %>
+        <tr>
+          <td>
+            <div class="line-clamp-1 admin-table-title"><%= s.title %></div>
+            <span class="text-xs text-gray-500"><%= fmtDate(s.createdAt) %><%= s.isAnonymous ? ' · publicação anônima' : '' %></span>
+          </td>
+          <td class="md-table-cell"><%= s.authorName %></td>
+          <td class="sm-table-cell">
+            <span class="badge <%= s.moderationStatus === 'approved' ? 'badge-emerald' : s.moderationStatus === 'rejected' ? 'badge-red' : 'badge-amber' %>">
+              <%= s.moderationStatus === 'approved' ? 'Aprovada' : s.moderationStatus === 'rejected' ? 'Rejeitada' : 'Pendente' %>
+            </span>
+          </td>
+          <td class="sm-table-cell"><%= s.supportCount %></td>
+          <td class="right">
+            <div class="table-actions">
+              <a class="table-icon-btn edit" href="/admin/sugestoes/<%= s._id %>" title="Avaliar" aria-label="Avaliar a sugestão: <%= s.title %>"><%- icon('edit', 14) %></a>
+              <form method="POST" action="/admin/sugestoes/<%= s._id %>/excluir" data-confirm="Excluir esta sugestão definitivamente?" class="inline-form">
+                <%- include('../partials/csrf-field') %>
+                <button type="submit" class="table-icon-btn danger" title="Excluir" aria-label="Excluir a sugestão: <%= s.title %>"><%- icon('trash2', 14) %></button>
+              </form>
+            </div>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
 </div>
-<% if (!suggestions.length) { %><div class="card suggestion-empty" style="margin-top:1rem"><%- icon('lightbulb', 40) %><h3>Nenhuma sugestão nesta lista</h3><p>As sugestões enviadas pelos usuários aparecerão aqui para moderação.</p></div><% } %>
+<% if (!suggestions.length) { %>
+  <div class="card suggestion-empty admin-empty">
+    <%- icon('lightbulb', 40) %>
+    <h3>Nenhuma sugestão nesta lista</h3>
+    <p>As sugestões enviadas pelos usuários aparecerão aqui para moderação.</p>
+  </div>
+<% } %>
 <%- include('../partials/pagination') %>
 <%- include('../partials/admin-footer') %>

@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true },
+    name: { type: String, required: true, trim: true, maxlength: 100 },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true },
     role: {
@@ -14,10 +14,14 @@ const userSchema = new mongoose.Schema(
     isAdmin: { type: Boolean, default: false },
     status: { type: String, enum: ["ativo", "bloqueado"], default: "ativo" },
 
+    // Momento da última troca/redefinição de senha. Sessões iniciadas antes
+    // dele deixam de valer (ver middleware/auth.js).
+    passwordChangedAt: { type: Date },
+
     // ── Integração com o Firebase Authentication ──────────────────────────
-    // Todos opcionais: usuários antigos (sem esses campos) continuam
-    // funcionando normalmente. Não ponha `default` aqui: "ausente" significa
-    // "conta antiga, ainda não vinculada ao Firebase".
+    // Todos opcionais: contas antigas (sem esses campos) continuam funcionando.
+    // Não use `default` aqui: "ausente" significa "conta ainda não vinculada
+    // ao Firebase".
     firebaseUid: { type: String, unique: true, sparse: true },
     emailVerified: { type: Boolean },
     verificationEmailSentAt: { type: Date },
@@ -25,12 +29,11 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Hash da senha antes de salvar
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+// Gera o hash da senha sempre que ela for alterada.
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
-  next();
 });
 
 userSchema.methods.comparePassword = function (candidate) {
@@ -43,11 +46,9 @@ userSchema.methods.roleLabel = function () {
   return map[this.role] || this.role;
 };
 
-// `email` já tem índice único (unique: true acima). Os dois abaixo apoiam
-// consultas reais do app: `isAdmin` é checado a cada exclusão/mudança de
-// status de admin para impedir zerar os administradores (ver routes/admin.js),
-// e `createdAt` é usado na listagem padrão de usuários e nos contadores do
-// dashboard.
+// `email` já tem índice único (unique: true acima). `isAdmin` é consultado ao
+// excluir, bloquear ou rebaixar administradores (para nunca zerar o número de
+// admins) e `createdAt` ordena a listagem de usuários e os contadores do painel.
 userSchema.index({ isAdmin: 1 });
 userSchema.index({ createdAt: -1 });
 

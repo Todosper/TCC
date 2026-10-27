@@ -40,14 +40,14 @@
 .search-box { position: relative; flex: 1; }
 .search-box svg.search-icon {
   position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);
-  width: 1rem; height: 1rem; color: var(--gray-400);
+  width: 1rem; height: 1rem; color: var(--gray-500);
 }
 .search-box input {
   width: 100%;
   padding: 0.625rem 1rem 0.625rem 2.25rem;
   font-size: 0.875rem; border-radius: 0.5rem;
   border: 1px solid var(--gray-300);
-  outline: none;
+  outline: 2px solid transparent;
 }
 .search-box input:focus { box-shadow: 0 0 0 2px var(--green-600); border-color: transparent; }
 
@@ -77,7 +77,7 @@
 .empty-state.boxed { background: var(--bg-card); border-radius: 1rem; border: 1px solid var(--gray-100); }
 .empty-state svg.empty-icon { width: 3rem; height: 3rem; color: var(--gray-300); margin: 0 auto 1rem; }
 .empty-state h3 { color: var(--gray-600); font-weight: 500; margin: 0 0 0.5rem; }
-.empty-state p { color: var(--gray-400); font-size: 0.875rem; margin: 0 0 1rem; }
+.empty-state p { color: var(--gray-500); font-size: 0.875rem; margin: 0 0 1rem; }
 .empty-actions { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
 
 .topic-list-item {
@@ -102,9 +102,9 @@
 @media (min-width: 640px) { .topic-list-icon { display: flex; } }
 .topic-list-icon.is-new { background: var(--green-100); }
 .topic-list-icon.is-locked { background: var(--gray-100); }
-.topic-list-icon svg { width: 1rem; height: 1rem; color: var(--gray-400); }
-.topic-list-icon.is-new svg { color: var(--green-600); }
-.topic-list-icon.is-locked svg { color: var(--gray-400); }
+.topic-list-icon svg { width: 1rem; height: 1rem; color: var(--gray-500); }
+.topic-list-icon.is-new svg { color: var(--green-700); }
+.topic-list-icon.is-locked svg { color: var(--gray-500); }
 
 /* Notice box (amber) */
 .notice-box {
@@ -126,7 +126,7 @@
 .create-form-card { display: flex; flex-direction: column; gap: 1rem; }
 .preview-card h2 { font-size: 1.125rem; font-weight: 700; color: var(--gray-900); margin: 0 0 0.5rem; }
 .preview-body { margin-top: 1rem; font-size: 0.875rem; color: var(--gray-700); line-height: 1.6; white-space: pre-wrap; }
-.preview-placeholder { color: var(--gray-400); font-style: italic; }
+.preview-placeholder { color: var(--gray-500); font-style: italic; }
 
 /* Topic detail */
 .breadcrumb {
@@ -159,7 +159,7 @@
 }
 .topic-author-avatar svg { width: 1rem; height: 1rem; color: #fff; }
 .topic-author-name { font-weight: 500; color: var(--gray-800); font-size: 0.875rem; }
-.topic-author-date { font-size: 0.75rem; color: var(--gray-400); }
+.topic-author-date { font-size: 0.75rem; color: var(--gray-500); }
 
 .topic-content-text { color: var(--gray-700); font-size: 0.875rem; line-height: 1.7; white-space: pre-wrap; }
 
@@ -167,7 +167,7 @@
   display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
   margin-top: 1rem; padding-top: 1rem;
   border-top: 1px solid var(--gray-100);
-  font-size: 0.75rem; color: var(--gray-400);
+  font-size: 0.75rem; color: var(--gray-500);
 }
 .topic-footer-row .with-icon { display: flex; align-items: center; gap: 0.25rem; }
 .topic-footer-row svg { width: 0.875rem; height: 0.875rem; }
@@ -177,15 +177,15 @@
   background: none; border: none; cursor: pointer; font-size: 0.75rem;
   padding: 0;
 }
-.topic-admin-actions .danger { color: var(--red-500); }
+.topic-admin-actions .danger { color: var(--red-700); }
 .topic-admin-actions .danger:hover { color: var(--red-700); }
-.topic-admin-actions .warn { color: var(--amber-500); }
+.topic-admin-actions .warn { color: var(--amber-700); }
 .topic-admin-actions .warn:hover { color: var(--amber-700); }
 
 .comments-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
-.comments-header svg { width: 1rem; height: 1rem; color: var(--gray-400); }
+.comments-header svg { width: 1rem; height: 1rem; color: var(--gray-500); }
 .comments-header h2 { font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin: 0; }
-.comments-success { font-size: 0.75rem; color: var(--green-600); display: flex; align-items: center; gap: 0.25rem; }
+.comments-success { font-size: 0.75rem; color: var(--green-700); display: flex; align-items: center; gap: 0.25rem; }
 .comments-success svg { width: 0.875rem; height: 0.875rem; }
 
 .comment-card {
@@ -205,13 +205,13 @@
 .comment-avatar.own svg { color: #fff; }
 .comment-name-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .comment-name-row .name { font-weight: 500; color: var(--gray-800); font-size: 0.875rem; }
-.comment-role-tag { font-size: 0.75rem; color: var(--gray-400); background: var(--gray-100); padding: 0.125rem 0.375rem; border-radius: 0.25rem; }
-.comment-own-tag { font-size: 0.75rem; color: var(--green-600); background: var(--green-100); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-weight: 500; }
-.comment-date { font-size: 0.75rem; color: var(--gray-400); }
+.comment-role-tag { font-size: 0.75rem; color: var(--gray-500); background: var(--gray-100); padding: 0.125rem 0.375rem; border-radius: 0.25rem; }
+.comment-own-tag { font-size: 0.75rem; color: var(--green-800); background: var(--green-100); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-weight: 500; }
+.comment-date { font-size: 0.75rem; color: var(--gray-500); }
 .comment-actions { display: flex; gap: 0.25rem; }
 .comment-actions button {
   padding: 0.375rem; border-radius: 0.5rem; background: none; border: none; cursor: pointer;
-  color: var(--gray-400); display: flex;
+  color: var(--gray-500); display: flex;
 }
 .comment-actions button:hover { background: var(--gray-100); }
 .comment-actions button:hover.danger { background: var(--red-50); color: var(--red-500); }
@@ -227,8 +227,11 @@
 .reply-box { background: var(--bg-card); border-radius: 1rem; border: 1px solid var(--gray-100); box-shadow: var(--shadow-sm); padding: 1.25rem; }
 .reply-box h3 { font-weight: 600; color: var(--gray-800); font-size: 0.875rem; margin: 0 0 0.75rem; }
 .reply-footer-row { display: flex; align-items: center; justify-content: space-between; margin-top: 0.75rem; }
-.reply-char-count { font-size: 0.75rem; color: var(--gray-400); }
+.reply-char-count { font-size: 0.75rem; color: var(--gray-500); }
 
 .login-to-reply { background: var(--gray-50); border-radius: 1rem; border: 1px solid var(--gray-200); padding: 1.5rem; text-align: center; }
 .login-to-reply p { color: var(--gray-500); font-size: 0.875rem; margin: 0 0 0.75rem; }
 .login-to-reply-actions { display: flex; gap: 0.5rem; justify-content: center; }
+
+.dark .topic-admin-actions .danger { color: #fca5a5; }
+.dark .topic-admin-actions .warn { color: #fcd34d; }

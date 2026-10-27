@@ -127,15 +127,15 @@
   background: var(--green-50);
 }
 .topic-icon.locked { background: var(--gray-100); }
-.topic-icon svg { width: 1rem; height: 1rem; color: var(--green-600); }
-.topic-icon.locked svg { color: var(--gray-400); }
+.topic-icon svg { width: 1rem; height: 1rem; color: var(--green-700); }
+.topic-icon.locked svg { color: var(--gray-500); }
 
 .topic-row-body { flex: 1; min-width: 0; }
 .topic-row-title-line { display: flex; align-items: flex-start; gap: 0.5rem; flex-wrap: wrap; }
 .topic-row-title { font-weight: 500; color: var(--gray-800); font-size: 0.875rem; line-height: 1.4; }
 .tag-new {
   padding: 0.125rem 0.375rem;
-  background: var(--green-100); color: var(--green-700);
+  background: var(--green-100); color: var(--green-800);
   font-size: 0.625rem; font-weight: 700;
   border-radius: 0.25rem;
   text-transform: uppercase;
@@ -157,7 +157,7 @@
   display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
   margin-top: 0.375rem;
 }
-.topic-row-meta span { font-size: 0.75rem; color: var(--gray-400); }
+.topic-row-meta span { font-size: 0.75rem; color: var(--gray-500); }
 .topic-row-meta .with-icon { display: flex; align-items: center; gap: 0.25rem; }
 .topic-row-meta svg { width: 0.75rem; height: 0.75rem; }
 
@@ -169,7 +169,7 @@
 @media (min-width: 640px) { .topic-row-stats { display: flex; } }
 .topic-row-stats .replies { display: flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; color: var(--gray-500); }
 .topic-row-stats .replies svg { width: 0.875rem; height: 0.875rem; }
-.topic-row-stats .views { font-size: 0.75rem; color: var(--gray-400); }
+.topic-row-stats .views { font-size: 0.75rem; color: var(--gray-500); }
 
 /* Sidebar */
 .sidebar-stack { display: flex; flex-direction: column; gap: 1.5rem; }
@@ -185,7 +185,7 @@
   transition: background 0.15s ease;
 }
 .faq-mini-item:hover { background: var(--green-50); }
-.faq-mini-item svg { width: 1rem; height: 1rem; color: var(--green-600); flex-shrink: 0; }
+.faq-mini-item svg { width: 1rem; height: 1rem; color: var(--green-700); flex-shrink: 0; }
 .faq-mini-item span {
   font-size: 0.875rem; color: var(--gray-700);
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
@@ -204,4 +204,4 @@
 .about-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
 .about-stat { background: rgba(255,255,255,0.1); border-radius: 0.5rem; padding: 0.75rem; text-align: center; }
 .about-stat-value { font-size: 1.25rem; font-weight: 700; }
-.about-stat-label { color: var(--green-200); font-size: 0.75rem; }
+.about-stat-label { color: var(--green-50); font-size: 0.75rem; }

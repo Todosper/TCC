@@ -1,12 +1,12 @@
-// Utilitários para ler parâmetros de query string e paginar listagens.
+// Utilitários para ler parâmetros de query string / corpo de formulário e paginar listagens.
 
 const OBJECT_ID_RE = /^[0-9a-fA-F]{24}$/;
 
-// Garante que o valor vindo da query string é um texto. Com o parser
-// `extended: true`, `?q=a&q=b` vira um array e `?q[x]=1` vira um objeto — o que
-// fazia `q.trim()` estourar (erro 500) e deixava `?cat[$ne]=x` virar um
-// operador do MongoDB no filtro. Qualquer coisa que não seja texto vira "".
-function queryString(value) {
+// Garante que o valor recebido é um texto. Com o parser `extended: true`,
+// `?q=a&q=b` vira um array e `?q[x]=1` vira um objeto, o que faria `q.trim()`
+// falhar (erro 500) ou deixaria `?cat[$ne]=x` virar um operador do MongoDB no
+// filtro. Qualquer coisa que não seja texto vira "".
+function asString(value) {
   return typeof value === "string" ? value : "";
 }
 
@@ -18,14 +18,13 @@ const MAX_PAGE = 100000;
 
 function parsePage(raw) {
   const n = parseInt(raw, 10);
-  // NaN/zero/negativo → 1. Valores enormes (inclusive Infinity) são limitados,
-  // o que depois leva à última página, como antes.
+  // NaN, zero ou negativo viram 1. Valores enormes (inclusive Infinity) são
+  // limitados e acabam levando à última página.
   return n > 0 ? Math.min(n, MAX_PAGE) : 1;
 }
 
-// Paginação que faz a contagem e a busca da página AO MESMO TEMPO (antes eram
-// duas idas seguidas ao banco). No caso raro de a página pedida ser maior que a
-// última, refaz a busca já na última página — mesmo comportamento de antes.
+// Pagina uma listagem fazendo a contagem e a busca da página ao mesmo tempo.
+// Se a página pedida for maior que a última, repete a busca na última página.
 //
 //   count(): () => Promise<number>
 //   find(skip, limit): (number, number) => Query | Aggregate | Promise
@@ -40,4 +39,5 @@ async function paginate({ count, find, page, pageSize }) {
   return { items, total, totalPages, page: totalPages };
 }
 
-module.exports = { queryString, isObjectIdString, parsePage, paginate };
+// `queryString` é mantido como apelido de `asString` (usado nas rotas existentes).
+module.exports = { asString, queryString: asString, isObjectIdString, parsePage, paginate };

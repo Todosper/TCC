@@ -1,0 +1,68 @@
+<%- include('../partials/admin-header') %>
+
+<div class="auth-header-row">
+  <a href="/admin/faq" class="auth-back-btn" aria-label="Voltar para a lista de perguntas" title="Voltar para a lista de perguntas"><%- icon('arrowLeft', 16) %></a>
+  <div>
+    <h2 class="admin-form-title">Categorias do FAQ</h2>
+  </div>
+</div>
+
+<% if (notice) { %><div class="auth-success" role="status"><%- icon('checkCircle2', 16) %><%= notice %></div><% } %>
+<% if (errors.general) { %><div class="auth-error" tabindex="-1" data-autofocus-error><%- icon('alertCircle', 16) %><%= errors.general %></div><% } %>
+
+<div class="admin-table-wrap">
+  <table class="admin-table">
+    <thead>
+      <tr><th>Categoria</th><th class="sm-table-cell">Perguntas</th><th class="right">Ações</th></tr>
+    </thead>
+    <tbody>
+      <% categories.forEach(function(c) { %>
+        <% var total = counts[c._id.toString()] || 0; %>
+        <tr>
+          <td><span class="badge <%= c.cls %>"><%= c.name %></span></td>
+          <td class="sm-table-cell"><%= total %></td>
+          <td class="right">
+            <div class="table-actions">
+              <% if (total === 0) { %>
+                <form method="POST" action="/admin/faq-categorias/<%= c._id %>/excluir" data-confirm="Excluir a categoria “<%= c.name %>”?" class="inline-form">
+                  <%- include('../partials/csrf-field') %>
+                  <button type="submit" class="table-icon-btn danger" title="Excluir categoria" aria-label="Excluir categoria <%= c.name %>"><%- icon('trash2', 14) %></button>
+                </form>
+              <% } else { %>
+                <span class="text-xs text-gray-500">Em uso</span>
+              <% } %>
+            </div>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<form method="POST" action="/admin/faq-categorias" class="admin-form-card admin-form-spaced">
+  <%- include('../partials/csrf-field') %>
+  <h3 class="admin-form-subtitle">Nova categoria</h3>
+  <div class="field">
+    <label for="cat-name">Nome</label>
+    <input class="input <%= errors.name ? 'error' : '' %>" id="cat-name" name="name" maxlength="60" required value="<%= form.name || '' %>"
+      <%- errors.name ? 'aria-invalid="true" aria-describedby="cat-name-error"' : '' %>>
+    <% if (errors.name) { %><p class="field-error" id="cat-name-error"><%- icon('alertCircle', 12) %><%= errors.name %></p><% } %>
+  </div>
+  <div class="field">
+    <label for="cat-color">Cor</label>
+    <select class="input <%= errors.cls ? 'error' : '' %>" id="cat-color" name="cls" required>
+      <% colors.forEach(function(c) { %><option value="<%= c.cls %>" <%= (form.cls || 'faqcat-emerald') === c.cls ? 'selected' : '' %>><%= c.label %></option><% }) %>
+    </select>
+    <% if (errors.cls) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.cls %></p><% } %>
+  </div>
+  <div class="field">
+    <label for="cat-icon">Ícone</label>
+    <select class="input <%= errors.icon ? 'error' : '' %>" id="cat-icon" name="icon" required>
+      <% icons.forEach(function(i) { %><option value="<%= i.icon %>" <%= (form.icon || 'HelpCircle') === i.icon ? 'selected' : '' %>><%= i.label %></option><% }) %>
+    </select>
+    <% if (errors.icon) { %><p class="field-error"><%- icon('alertCircle', 12) %><%= errors.icon %></p><% } %>
+  </div>
+  <button type="submit" class="btn btn-primary"><%- icon('plus', 16) %>Criar categoria</button>
+</form>
+
+<%- include('../partials/admin-footer') %>

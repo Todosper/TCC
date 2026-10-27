@@ -34,5 +34,7 @@ const suggestionSchema = new mongoose.Schema(
 
 suggestionSchema.index({ moderationStatus: 1, publishedAt: -1 });
 suggestionSchema.index({ "votes.user": 1 });
+// Sugestões de um autor (aba "Minha atividade" do perfil).
+suggestionSchema.index({ author: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Suggestion", suggestionSchema);

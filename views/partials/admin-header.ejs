@@ -1,4 +1,3 @@
-<% var hideFooter = false; %>
 <div class="container admin-page">
   <div class="admin-header">
     <div class="admin-header-left">
@@ -11,11 +10,16 @@
     <a href="/" class="admin-back-link"><%- icon('arrowLeft', 16) %><span>Voltar ao site</span></a>
   </div>
 
-  <div class="tabs admin-tabs">
-    <a href="/admin" class="tab-btn <%= tab === 'dashboard' ? 'active' : '' %>"><%- icon('layoutDashboard', 16) %>Dashboard</a>
-    <a href="/admin/faq" class="tab-btn <%= tab === 'faq' ? 'active' : '' %>"><%- icon('helpCircle', 16) %>Gerenciar FAQ</a>
-    <a href="/admin/forum" class="tab-btn <%= tab === 'forum' ? 'active' : '' %>"><%- icon('messageSquare', 16) %>Moderar Fórum</a>
-    <a href="/admin/sugestoes" class="tab-btn <%= tab === 'suggestions' ? 'active' : '' %>"><%- icon('lightbulb', 16) %>Sugestões</a>
-    <a href="/admin/denuncias" class="tab-btn <%= tab === 'reports' ? 'active' : '' %>"><%- icon('flag', 16) %>Denúncias</a>
-    <a href="/admin/users" class="tab-btn <%= tab === 'users' ? 'active' : '' %>"><%- icon('users', 16) %>Usuários</a>
-  </div>
+  <% var adminTabs = [
+    { id: 'dashboard', href: '/admin', icon: 'layoutDashboard', label: 'Dashboard' },
+    { id: 'faq', href: '/admin/faq', icon: 'helpCircle', label: 'Gerenciar FAQ' },
+    { id: 'forum', href: '/admin/forum', icon: 'messageSquare', label: 'Moderar Fórum' },
+    { id: 'suggestions', href: '/admin/sugestoes', icon: 'lightbulb', label: 'Sugestões' },
+    { id: 'reports', href: '/admin/denuncias', icon: 'flag', label: 'Denúncias' },
+    { id: 'users', href: '/admin/users', icon: 'users', label: 'Usuários' }
+  ]; %>
+  <nav class="tabs admin-tabs" aria-label="Seções do painel">
+    <% adminTabs.forEach(function (t) { %>
+      <a href="<%= t.href %>" class="tab-btn <%= tab === t.id ? 'active' : '' %>"<%- tab === t.id ? ' aria-current="page"' : '' %>><%- icon(t.icon, 16) %><%= t.label %></a>
+    <% }) %>
+  </nav>

@@ -1,36 +1,47 @@
-<% var activePage = 'faq'; %>
-<div class="container-sm" style="padding:2.5rem 1rem;">
+<%
+  var faqIcons = { FileText: 'fileText', BookOpen: 'bookOpen', Award: 'award', Monitor: 'monitor', Users: 'users', Briefcase: 'briefcase' };
+  var faqUrl = function (cat) {
+    var parts = [];
+    if (cat) parts.push('cat=' + cat);
+    if (query) parts.push('q=' + encodeURIComponent(query));
+    return '/faq' + (parts.length ? '?' + parts.join('&') : '');
+  };
+%>
+<div class="container-sm page-pad">
   <div class="faq-header">
     <div class="faq-pill"><%- icon('helpCircle', 16) %>Perguntas Frequentes</div>
     <h1 class="faq-title">Como podemos ajudar?</h1>
     <p class="faq-subtitle">Encontre respostas para as dúvidas mais comuns da comunidade acadêmica do IFSul Bagé.</p>
   </div>
 
-  <form class="faq-search" method="GET" action="/faq">
+  <form class="faq-search" method="GET" action="/faq" role="search">
     <%- icon('search', 16, 'search-icon') %>
-    <input type="text" name="q" value="<%= query %>" placeholder="Pesquisar nas dúvidas frequentes..." onchange="this.form.submit()">
+    <label for="faq-search" class="sr-only">Pesquisar nas dúvidas frequentes</label>
+    <input type="search" id="faq-search" name="q" value="<%= query %>" placeholder="Pesquisar nas dúvidas frequentes...">
     <% if (selCat) { %><input type="hidden" name="cat" value="<%= selCat %>"><% } %>
     <% if (query) { %>
-      <a href="/faq<%= selCat ? '?cat=' + selCat : '' %>" class="faq-search-clear"><%- icon('x', 16) %></a>
+      <a href="<%= faqUrl(selCat).replace(/[?&]q=[^&]*/, '').replace('/faq&', '/faq?') %>" class="faq-search-clear" aria-label="Limpar busca" title="Limpar busca"><%- icon('x', 16) %></a>
     <% } %>
+    <button type="submit" class="search-submit">Buscar</button>
   </form>
 
-  <div class="faq-cat-grid">
+  <nav class="faq-cat-grid" aria-label="Categorias do FAQ">
     <% categories.forEach(function(c) { %>
       <% var isActive = selCat === c._id.toString(); %>
-      <a href="/faq?<%= isActive ? '' : 'cat=' + c._id %><%= query ? (isActive ? 'q=' + encodeURIComponent(query) : '&q=' + encodeURIComponent(query)) : '' %>"
-         class="faq-cat-card <%= isActive ? 'active' : c.cls %>">
-        <%- icon(c.icon === 'FileText' ? 'fileText' : c.icon === 'BookOpen' ? 'bookOpen' : c.icon === 'Award' ? 'award' : c.icon === 'Monitor' ? 'monitor' : c.icon === 'Users' ? 'users' : c.icon === 'Briefcase' ? 'briefcase' : 'helpCircle', 20) %>
+      <% var total = counts[c._id.toString()] || 0; %>
+      <a href="<%= faqUrl(isActive ? '' : c._id) %>"
+         class="faq-cat-card <%= isActive ? 'active' : c.cls %>"<%- isActive ? ' aria-current="true"' : '' %>>
+        <%- icon(faqIcons[c.icon] || 'helpCircle', 20) %>
         <span class="cname"><%= c.name %></span>
-        <span class="ccount"><%= counts[c._id.toString()] || 0 %> perguntas</span>
+        <span class="ccount"><%= total %> <%= plural(total, 'pergunta', 'perguntas') %></span>
       </a>
     <% }) %>
-  </div>
+  </nav>
 
   <% if (faqs.length === 0) { %>
     <div class="empty-state">
       <%- icon('helpCircle', 48, 'empty-icon') %>
-      <h3>Nenhum resultado encontrado</h3>
+      <h2>Nenhum resultado encontrado</h2>
       <p>Tente outros termos ou navegue pelas categorias.</p>
       <div class="empty-actions">
         <a href="/faq" class="btn btn-outline btn-sm">Limpar filtros</a>
@@ -40,22 +51,23 @@
   <% } else { %>
     <div class="faq-list">
       <% faqs.forEach(function(f) { %>
-        <div class="faq-item">
-          <button type="button" class="faq-q-btn">
-            <div class="faq-q-left">
-              <div class="faq-q-icon"><%- icon('helpCircle', 14) %></div>
-              <span class="faq-q-text"><%= f.question %></span>
-            </div>
-            <%- icon('chevronDown', 16, 'faq-chevron') %>
-          </button>
-          <div class="faq-answer">
+        <div class="faq-item" id="faq-<%= f._id %>">
+          <h2 class="faq-q-heading">
+            <button type="button" class="faq-q-btn" aria-expanded="false" aria-controls="faq-a-<%= f._id %>">
+              <span class="faq-q-left">
+                <span class="faq-q-icon"><%- icon('helpCircle', 14) %></span>
+                <span class="faq-q-text"><%= f.question %></span>
+              </span>
+              <%- icon('chevronDown', 16, 'faq-chevron') %>
+            </button>
+          </h2>
+          <div class="faq-answer" id="faq-a-<%= f._id %>" role="region" aria-label="Resposta">
             <div class="faq-answer-inner">
               <p><%= f.answer %></p>
             </div>
             <div class="faq-helpful">
-              <span>Esta resposta foi útil?</span>
-              <button type="button" class="yes"><%- icon('check', 14) %>Sim</button>
-              <a href="/forum" class="no">Não — perguntar no Fórum</a>
+              <span>Ainda ficou com dúvida?</span>
+              <a href="/forum" class="no">Pergunte no Fórum</a>
             </div>
           </div>
         </div>
@@ -64,7 +76,7 @@
   <% } %>
 
   <div class="faq-cta">
-    <h3>Não encontrou o que buscava?</h3>
+    <h2>Não encontrou o que buscava?</h2>
     <p>Poste sua pergunta no fórum e a comunidade irá ajudar.</p>
     <a href="/forum" class="btn btn-white"><%- icon('messageSquare', 16) %>Ir ao Fórum</a>
   </div>

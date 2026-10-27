@@ -1,3 +1,4 @@
+<% var f = (typeof form !== 'undefined' && form) ? form : {}; %>
 <div class="auth-page">
   <div class="auth-box">
     <div class="auth-card">
@@ -8,21 +9,21 @@
       </div>
 
       <% if (error) { %>
-        <div class="auth-error"><%- icon('alertCircle', 16) %><%= error %></div>
+        <div class="auth-error" tabindex="-1" data-autofocus-error><%- icon('alertCircle', 16) %><%= error %></div>
       <% } %>
 
       <form class="auth-form" method="POST" action="/login">
         <%- include('partials/csrf-field') %>
+        <% if (f.next) { %><input type="hidden" name="next" value="<%= f.next %>"><% } %>
         <div class="field">
           <label for="login">E-mail institucional</label>
-          <input class="input" id="login" name="loginOrEmail" type="email"
-            placeholder="seu.email@ifsul.edu.br">
+          <input class="input" id="login" name="loginOrEmail" type="email" autocomplete="email" required
+            placeholder="nome@academico.ifsul.edu.br" value="<%= f.email || '' %>">
         </div>
         <div class="field">
           <label for="pw">Senha</label>
           <div class="field-wrap">
-            <input class="input has-right" id="pw" name="password" type="password"
-              placeholder="••••••••">
+            <input class="input has-right" id="pw" name="password" type="password" autocomplete="current-password" required>
             <button type="button" class="field-right" data-toggle-password="pw">
               <%- icon('eye', 16) %>
             </button>

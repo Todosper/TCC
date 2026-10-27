@@ -2,7 +2,7 @@
   <div class="a11y-head">
     <div class="a11y-title" id="a11y-title">
       <%- icon('personStanding', 20) %>
-        <span>Acessibilidade</span>
+      <span>Acessibilidade</span>
     </div>
     <button type="button" id="a11y-close" class="a11y-close" aria-label="Fechar painel de acessibilidade">
       <%- icon('x', 18) %>
@@ -17,7 +17,7 @@
       <button type="button" class="a11y-theme-btn" data-a11y-theme="light" aria-pressed="false">
         <span class="a11y-dot" aria-hidden="true"></span>Claro
       </button>
-      <button type="button" class="a11y-theme-btn" data-a11y-theme="dark" aria-pressed="true">
+      <button type="button" class="a11y-theme-btn" data-a11y-theme="dark" aria-pressed="false">
         <span class="a11y-dot" aria-hidden="true"></span>Escuro
       </button>
     </div>
@@ -43,15 +43,16 @@
       <button type="button" id="a11y-links" class="a11y-switch" role="switch" aria-checked="false" aria-labelledby="a11y-links-label"></button>
     </div>
     <div class="a11y-row">
-      <span id="a11y-libras-label">Libras</span>
-      <button type="button" id="a11y-libras" class="a11y-switch" role="switch" aria-checked="false" aria-labelledby="a11y-libras-label"></button>
+      <span id="a11y-libras-label">Botão de Libras</span>
+      <button type="button" id="a11y-libras" class="a11y-switch" role="switch" aria-checked="true" aria-labelledby="a11y-libras-label" aria-describedby="a11y-libras-hint"></button>
     </div>
+    <p id="a11y-libras-hint" class="a11y-hint a11y-row-hint">Mostra ou esconde o botão azul do VLibras, o tradutor para Libras, no canto da tela.</p>
     <p id="a11y-libras-msg" class="a11y-hint a11y-msg" role="status" hidden>VLibras indisponível no momento. Verifique sua conexão e recarregue a página.</p>
   </div>
 
   <button type="button" id="a11y-reset" class="a11y-reset">
     <%- icon('rotateCcw', 16) %>
-      Restaurar configurações
+    Restaurar configurações
   </button>
 
   <p class="a11y-esc">Pressione Esc para fechar</p>

@@ -1,12 +1,16 @@
 // ============================================================
 // Painel de acessibilidade — sem dependências externas.
 // Depende de main.js apenas para os ícones globais MOON_SVG / SUN_SVG.
+// As preferências ficam no localStorage e são aplicadas antes da primeira
+// renderização por um script no <head> do layout.
 // ============================================================
 
 (function () {
   var KEY_SIZE = "a11y-font-size";
   var KEY_CONTRAST = "a11y-contrast";
   var KEY_LINKS = "a11y-links";
+  // Botão do VLibras: visível por padrão. Só é gravado quando a pessoa o esconde ("0").
+  var KEY_LIBRAS = "a11y-libras-visible";
   var SIZE_MIN = 80, SIZE_MAX = 150, SIZE_STEP = 10, SIZE_DEFAULT = 100;
 
   var root = document.documentElement;
@@ -17,6 +21,10 @@
       if (value === null) localStorage.removeItem(key);
       else localStorage.setItem(key, value);
     } catch (e) { /* armazenamento indisponível: a preferência vale só nesta página */ }
+  }
+
+  function systemPrefersDark() {
+    return !window.matchMedia || window.matchMedia("(prefers-color-scheme: dark)").matches;
   }
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -36,7 +44,7 @@
     var resetBtn = document.getElementById("a11y-reset");
     var mobileMenu = document.getElementById("mobile-menu");
 
-    // ── Abrir / fechar (somente pelo botão de acessibilidade) ──────────
+    // ── Abrir / fechar ─────────────────────────────────────────────────
     function isOpen() { return !panel.hasAttribute("hidden"); }
 
     function setTriggersExpanded(expanded) {
@@ -55,7 +63,10 @@
       setTriggersExpanded(false);
       if (returnFocus) {
         var visible = Array.prototype.filter.call(triggers, function (t) { return t.offsetParent !== null; })[0];
+        // No celular o botão do painel fica dentro do menu fechado; o foco volta ao botão do menu.
+        var fallback = document.getElementById("mobile-menu-toggle");
         if (visible) visible.focus();
+        else if (fallback) fallback.focus();
       }
     }
 
@@ -70,18 +81,19 @@
       if (e.key === "Escape" && isOpen()) closePanel(true);
     });
 
-    // ── Aparência (claro / escuro) — mesma lógica do botão da navbar ───
+    // ── Aparência (claro / escuro), em sincronia com o botão da navbar ──
     function syncTheme() {
       var isDark = root.classList.contains("dark");
       themeBtns.forEach(function (b) {
         var active = b.getAttribute("data-a11y-theme") === (isDark ? "dark" : "light");
         b.setAttribute("aria-pressed", active ? "true" : "false");
       });
-      // mantém o ícone do botão de tema da navbar em sincronia
+      // Mantém o ícone do botão de tema da navbar em sincronia.
       var navToggle = document.getElementById("theme-toggle");
       if (navToggle && typeof SUN_SVG !== "undefined" && typeof MOON_SVG !== "undefined") {
         navToggle.innerHTML = isDark ? SUN_SVG : MOON_SVG;
         navToggle.setAttribute("title", isDark ? "Modo claro" : "Modo escuro");
+        navToggle.setAttribute("aria-label", isDark ? "Mudar para o modo claro" : "Mudar para o modo escuro");
       }
     }
 
@@ -89,12 +101,12 @@
       b.addEventListener("click", function () {
         var dark = b.getAttribute("data-a11y-theme") === "dark";
         root.classList.toggle("dark", dark);
-        try { localStorage.setItem("theme", dark ? "dark" : "light"); } catch (e) { }
+        try { localStorage.setItem("theme", dark ? "dark" : "light"); } catch (e) { /* preferência vale só nesta página */ }
         syncTheme();
       });
     });
 
-    // Se o tema mudar pelo botão da navbar, o painel acompanha
+    // Se o tema mudar pelo botão da navbar, o painel acompanha.
     new MutationObserver(syncTheme).observe(root, { attributes: true, attributeFilter: ["class"] });
     syncTheme();
 
@@ -132,84 +144,37 @@
     var setContrast = bindClassSwitch(contrastSwitch, "a11y-contrast", KEY_CONTRAST);
     var setLinks = bindClassSwitch(linksSwitch, "a11y-links", KEY_LINKS);
 
-    // ── Libras (VLibras já carregado em layout.ejs) ────────────────────
-    // O painel apenas aciona o widget existente, como o usuário faria
-    // clicando no botão flutuante do VLibras.
-    function vwButton() { return document.querySelector("[vw-access-button]"); }
-    function vwWrapper() { return document.querySelector("[vw-plugin-wrapper]"); }
-    function librasIsOpen() {
-      var w = vwWrapper();
-      return !!(w && w.classList.contains("active"));
-    }
+    // ── Botão de Libras (VLibras) ──────────────────────────────────────
+    // O interruptor mostra ou esconde o botão flutuante do VLibras; ele não
+    // abre nem fecha a tradução. O widget em si é carregado por layout.ejs
+    // (window.loadVLibras) e só é baixado enquanto o botão estiver visível.
+    function librasVisible() { return !root.classList.contains("a11y-libras-hidden"); }
     function showLibrasMsg(show) { if (librasMsg) librasMsg.hidden = !show; }
     function renderLibras() {
-      librasSwitch.setAttribute("aria-checked", librasIsOpen() ? "true" : "false");
+      librasSwitch.setAttribute("aria-checked", librasVisible() ? "true" : "false");
     }
-
-    function openLibras() {
-      var btn = vwButton();
-      if (!btn) return false;
-      btn.click();
-      return true;
-    }
-
-    function closeLibras() {
-      var w = vwWrapper();
-      if (!w) return;
-      var closeEl = w.querySelector('[class*="close"], [aria-label*="echar" i], [title*="echar" i]');
-      if (closeEl) closeEl.click();
-      // Garantia: se o widget continuar aberto, recolhe-o pelo estado visual
-      window.setTimeout(function () {
-        if (librasIsOpen()) {
-          w.classList.remove("active");
-          var btn = vwButton();
-          if (btn) btn.classList.add("active");
-        }
-        renderLibras();
-      }, 200);
-    }
-
-    librasSwitch.addEventListener("click", function () {
+    function setLibras(visible) {
+      root.classList.toggle("a11y-libras-hidden", !visible);
+      write(KEY_LIBRAS, visible ? null : "0");
       showLibrasMsg(false);
-      if (librasSwitch.getAttribute("aria-checked") === "true") {
-        librasSwitch.setAttribute("aria-checked", "false");
-        closeLibras();
-      } else {
-        if (openLibras()) {
-          librasSwitch.setAttribute("aria-checked", "true");
-          window.setTimeout(function () { if (vwWrapper()) renderLibras(); }, 500);
-        } else {
-          showLibrasMsg(true);
-        }
-      }
-    });
-
-    // Acompanha o widget (inclusive se o usuário usar o botão flutuante do VLibras)
-    function watchLibras() {
-      var target = document.querySelector("[vw]");
-      if (!target) return false;
-      new MutationObserver(renderLibras).observe(target, { attributes: true, attributeFilter: ["class"], subtree: true });
+      if (visible && typeof window.loadVLibras === "function") window.loadVLibras();
       renderLibras();
-      return true;
     }
-    if (!watchLibras()) {
-      var bodyObserver = new MutationObserver(function () {
-        if (watchLibras()) bodyObserver.disconnect();
-      });
-      bodyObserver.observe(document.body, { childList: true, subtree: true });
-    }
+    librasSwitch.addEventListener("click", function () { setLibras(!librasVisible()); });
+    // layout.ejs avisa quando o script do VLibras não pôde ser carregado.
+    document.addEventListener("vlibras:error", function () { if (librasVisible()) showLibrasMsg(true); });
+    renderLibras();
 
     // ── Restaurar configurações ────────────────────────────────────────
     resetBtn.addEventListener("click", function () {
       applySize(SIZE_DEFAULT);
       setContrast(false);
       setLinks(false);
-      // tema padrão do site = escuro (ver script no <head> do layout)
-      root.classList.add("dark");
-      try { localStorage.removeItem("theme"); } catch (e) { }
+      // Tema padrão: o do sistema (mesma regra do script no <head> do layout).
+      root.classList.toggle("dark", systemPrefersDark());
+      try { localStorage.removeItem("theme"); } catch (e) { /* sem armazenamento: nada a limpar */ }
       syncTheme();
-      showLibrasMsg(false);
-      if (librasIsOpen()) closeLibras();
+      setLibras(true);
     });
   });
 })();

@@ -1,14 +1,14 @@
 const Notification = require("../models/Notification");
 const User = require("../models/User");
+const { safeNext } = require("../helpers/redirect");
 
 // ─── Estado da conta (cache curto) ──────────────────────────────────────────
 // A sessão guarda { id, name, role, isAdmin } do momento do login e vale por 7
-// dias. Sem conferir o banco, um usuário BLOQUEADO continuava logado e
-// publicando, um admin REBAIXADO mantinha os poderes de admin, e uma conta
-// EXCLUÍDA continuava com sessão válida. Por isso o estado atual da conta é
-// consultado a cada requisição autenticada — mas com um cache de poucos
-// segundos (e invalidação imediata quando um admin altera a conta, ver
-// invalidateUserCache) para não gerar uma consulta extra a cada clique.
+// dias. Para que bloquear, rebaixar ou excluir uma conta, ou trocar a senha,
+// tenha efeito imediato, o estado atual da conta é consultado a cada requisição
+// autenticada. Um cache de poucos segundos evita uma consulta extra a cada
+// clique; ele é limpo na hora quando o estado da conta muda (invalidateUserCache).
+// O cache fica na memória do processo, o que basta para uma única instância.
 const ACCOUNT_CACHE_TTL_MS = 20 * 1000;
 const ACCOUNT_CACHE_MAX = 5000;
 const accountCache = new Map();
@@ -17,14 +17,21 @@ function invalidateUserCache(userId) {
   if (userId) accountCache.delete(String(userId));
 }
 
-// Retorna { status, isAdmin, role } da conta, ou null se ela não existe mais.
+// Retorna { status, isAdmin, role, passwordChangedAt } da conta, ou null se ela não existe mais.
 async function loadAccountState(userId) {
   const key = String(userId);
   const hit = accountCache.get(key);
   if (hit && hit.expires > Date.now()) return hit.state;
 
-  const doc = await User.findById(key).select("status isAdmin role").lean();
-  const state = doc ? { status: doc.status, isAdmin: !!doc.isAdmin, role: doc.role } : null;
+  const doc = await User.findById(key).select("status isAdmin role passwordChangedAt").lean();
+  const state = doc
+    ? {
+        status: doc.status,
+        isAdmin: !!doc.isAdmin,
+        role: doc.role,
+        passwordChangedAt: doc.passwordChangedAt ? doc.passwordChangedAt.getTime() : 0,
+      }
+    : null;
 
   if (accountCache.size >= ACCOUNT_CACHE_MAX) accountCache.clear();
   accountCache.set(key, { state, expires: Date.now() + ACCOUNT_CACHE_TTL_MS });
@@ -40,18 +47,20 @@ async function attachUser(req, res, next) {
   const sessionUser = req.session && req.session.user;
   if (!sessionUser) return next();
 
-  // As duas consultas são independentes: rodam em paralelo. Se a checagem da
-  // conta falhar (ex.: oscilação do banco), mantém a sessão como estava em vez
-  // de deslogar todo mundo por causa de um erro temporário.
+  // As duas consultas são independentes e rodam em paralelo. Se a checagem da
+  // conta falhar (ex.: oscilação do banco), a sessão é mantida como estava em
+  // vez de deslogar todo mundo por causa de um erro temporário.
   const [state, unreadCount] = await Promise.all([
     loadAccountState(sessionUser.id).catch(() => undefined),
     Notification.countDocuments({ recipient: sessionUser.id, read: false }).catch(() => 0),
   ]);
 
-  if (state === null || (state && state.status === "bloqueado")) {
-    // Conta excluída ou bloqueada: encerra o login desta sessão. No próximo
-    // login o usuário bloqueado vê a mensagem de bloqueio normalmente.
+  // Encerra o login desta sessão quando a conta foi excluída ou bloqueada, ou
+  // quando a senha foi trocada depois que esta sessão começou.
+  const passwordChangedSince = state && state.passwordChangedAt && (req.session.authAt || 0) < state.passwordChangedAt;
+  if (state === null || (state && state.status === "bloqueado") || passwordChangedSince) {
     delete req.session.user;
+    delete req.session.authAt;
     return next();
   }
 
@@ -67,11 +76,12 @@ async function attachUser(req, res, next) {
   next();
 }
 
+// Redireciona para o login e, em pedidos GET, guarda a página desejada para
+// voltar a ela depois de entrar.
 function requireAuth(req, res, next) {
-  if (!req.session.user) {
-    return res.redirect("/login");
-  }
-  next();
+  if (req.session.user) return next();
+  const target = req.method === "GET" ? safeNext(req.originalUrl) : "/";
+  res.redirect(target === "/" ? "/login" : `/login?next=${encodeURIComponent(target)}`);
 }
 
 function requireAdmin(req, res, next) {

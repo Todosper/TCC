@@ -1,9 +1,22 @@
-<div class="container-md" style="padding:2.5rem 1rem;">
-  <div class="breadcrumb">
+<%
+  var me = (loggedIn && currentUser) ? String(currentUser.id) : null;
+  var isOwner = !!me && String(topic.author) === me;
+  var canMarkSolution = isOwner || isAdmin;
+  var topicUrl = '/forum/topico/' + topic._id;
+%>
+<div class="container-md page-pad">
+  <nav class="breadcrumb" aria-label="Você está em">
     <a href="/forum"><%- icon('arrowLeft', 16) %>Fórum</a>
     <%- icon('chevronRight', 12, 'chevron') %>
-    <span class="current"><%= topic.title %></span>
-  </div>
+    <span class="current" aria-current="page"><%= topic.title %></span>
+  </nav>
+
+  <% if (notice) { %>
+    <div class="auth-success" role="status"><%- icon('checkCircle2', 16) %><%= notice %></div>
+  <% } %>
+  <% if (actionError) { %>
+    <div class="auth-error" tabindex="-1" data-autofocus-error><%- icon('alertCircle', 16) %><%= actionError %></div>
+  <% } %>
 
   <% if (topic.locked) { %>
     <div class="notice-box">
@@ -12,13 +25,14 @@
     </div>
   <% } %>
 
-  <div class="topic-main-card">
+  <article class="topic-main-card">
     <div class="topic-main-header">
       <div class="topic-main-header-row">
-        <div style="flex:1;min-width:0;">
+        <div class="topic-main-header-text">
           <h1 class="topic-main-title"><%= topic.title %></h1>
           <div class="topic-main-tags">
             <span class="badge badge-white"><%= catLabel(topic.category) %></span>
+            <% if (solvedCommentId) { %><span class="badge badge-white"><%- icon('checkCircle2', 12) %> Resolvido</span><% } %>
             <% (topic.tags || []).forEach(function(tag) { %>
               <span class="hashtag">#<%= tag %></span>
             <% }) %>
@@ -32,65 +46,55 @@
         <div class="topic-author-avatar"><%- icon('user', 16) %></div>
         <div>
           <div class="topic-author-name"><%= topic.authorName %></div>
-          <div class="topic-author-date"><%= topic.createdAt.toLocaleDateString('pt-BR') %></div>
+          <div class="topic-author-date"><time datetime="<%= new Date(topic.createdAt).toISOString() %>"><%= fmtDate(topic.createdAt) %></time></div>
         </div>
       </div>
       <p class="topic-content-text"><%= topic.content %></p>
       <div class="topic-footer-row">
-        <span class="with-icon"><%- icon('messageSquare', 14) %><%= comments.length %> respostas</span>
-        <span><%= topic.views %> visualizações</span>
-        <% if (loggedIn && currentUser && topic.author.toString() !== currentUser.id) { %>
-          <button type="button" class="btn btn-outline btn-sm" onclick="var f=document.getElementById('report-topic-form'); f.style.display = f.style.display === 'none' ? 'block' : 'none';">
-            <%- icon('flag', 14) %>Denunciar
+        <span class="with-icon"><%- icon('messageSquare', 14) %><%= comments.length %> <%= plural(comments.length, 'resposta', 'respostas') %></span>
+        <span><%= topic.views || 0 %> <%= plural(topic.views || 0, 'visualização', 'visualizações') %></span>
+        <% if (loggedIn && !isOwner) { %>
+          <button type="button" class="btn btn-outline btn-sm" data-toggle-target="report-topic-form" aria-controls="report-topic-form">
+            <%- icon('flag', 14) %>Denunciar tópico
           </button>
+        <% } %>
+        <% if (isOwner) { %>
+          <form method="POST" action="/forum/topico/<%= topic._id %>/excluir" class="inline-form"
+            data-confirm="Excluir este tópico? Esta ação não pode ser desfeita.">
+            <%- include('partials/csrf-field') %>
+            <button type="submit" class="btn btn-outline btn-sm"><%- icon('trash2', 14) %>Excluir meu tópico</button>
+          </form>
         <% } %>
         <% if (isAdmin) { %>
           <div class="topic-admin-actions">
-            <form method="POST" action="/admin/forum/<%= topic._id %>/excluir" style="display:inline;">
+            <form method="POST" action="/admin/forum/<%= topic._id %>/excluir" class="inline-form"
+              data-confirm="Excluir este tópico e todas as respostas? Esta ação não pode ser desfeita.">
               <%- include('partials/csrf-field') %>
-              <button type="submit" class="danger"><%- icon('flag', 14) %>Remover</button>
+              <button type="submit" class="danger"><%- icon('trash2', 14) %>Remover</button>
             </form>
-            <form method="POST" action="/admin/forum/<%= topic._id %>/toggle-lock" style="display:inline;">
+            <form method="POST" action="/admin/forum/<%= topic._id %>/toggle-lock" class="inline-form">
               <%- include('partials/csrf-field') %>
               <button type="submit" class="warn"><%- icon('lock', 14) %><%= topic.locked ? 'Reabrir' : 'Encerrar' %></button>
             </form>
           </div>
         <% } %>
       </div>
-      <% if (loggedIn && currentUser && topic.author.toString() !== currentUser.id) { %>
-        <form id="report-topic-form" method="POST" action="/forum/topico/<%= topic._id %>/denunciar" class="report-form" style="display:none;">
-          <%- include('partials/csrf-field') %>
-          <label class="field-label">Por que você está denunciando este tópico?</label>
-          <select class="input" name="reason" required>
-            <option value="">Selecione um motivo</option>
-            <option value="spam">Spam / propaganda</option>
-            <option value="offensive">Conteúdo ofensivo</option>
-            <option value="personal_info">Expõe dados pessoais de alguém</option>
-            <option value="off_topic">Fora do contexto do Campus</option>
-            <option value="other">Outro motivo</option>
-          </select>
-          <textarea class="input" name="details" rows="2" maxlength="500" placeholder="Detalhes adicionais (opcional)" style="margin-top:0.5rem;"></textarea>
-          <button type="submit" class="btn btn-secondary btn-sm" style="margin-top:0.5rem;">Enviar denúncia</button>
-        </form>
+      <% if (loggedIn && !isOwner) { %>
+        <%- include('partials/report-form', { formId: 'report-topic-form', label: 'Por que você está denunciando este tópico?' }) %>
       <% } %>
     </div>
-  </div>
+  </article>
 
   <div class="comments-header">
     <%- icon('messageSquare', 16) %>
-    <h2><%= comments.length %> Respostas</h2>
-    <% if (submitted) { %>
-      <span class="comments-success"><%- icon('checkCircle2', 14) %>Sua resposta foi publicada!</span>
-    <% } %>
-    <% if (reported) { %>
-      <span class="comments-success"><%- icon('checkCircle2', 14) %>Denúncia enviada. A moderação vai revisar.</span>
-    <% } %>
+    <h2><%= comments.length %> <%= plural(comments.length, 'Resposta', 'Respostas') %></h2>
   </div>
 
-  <div style="margin-bottom:1.5rem;">
+  <div class="comments-list">
     <% comments.forEach(function(c) { %>
-      <% var isOwn = loggedIn && currentUser && c.author.toString() === currentUser.id; %>
-      <div class="comment-card <%= isOwn ? 'own' : '' %>">
+      <% var isOwn = !!me && String(c.author) === me; %>
+      <% var isSolution = solvedCommentId === String(c._id); %>
+      <article id="comentario-<%= c._id %>" class="comment-card <%= isOwn ? 'own' : '' %> <%= isSolution ? 'is-solution' : '' %>">
         <div class="comment-top">
           <div class="comment-author-row">
             <div class="comment-avatar <%= isOwn ? 'own' : '' %>"><%- icon('user', 16) %></div>
@@ -99,23 +103,31 @@
                 <span class="name"><%= c.authorName %></span>
                 <span class="comment-role-tag"><%= c.authorRole %></span>
                 <% if (isOwn) { %><span class="comment-own-tag">Você</span><% } %>
+                <% if (isSolution) { %><span class="solution-badge"><%- icon('checkCircle2', 12) %>Resposta que resolveu</span><% } %>
               </div>
-              <div class="comment-date"><%= c.createdAt.toLocaleString('pt-BR') %></div>
+              <div class="comment-date"><time datetime="<%= new Date(c.createdAt).toISOString() %>"><%= fmtDateTime(c.createdAt) %></time></div>
             </div>
           </div>
           <div class="comment-actions">
             <% if (loggedIn && !isOwn) { %>
-              <button type="button" class="danger" title="Denunciar este comentário"
-                onclick="var f=document.getElementById('report-comment-<%= c._id %>'); f.style.display = f.style.display === 'none' ? 'block' : 'none';">
+              <button type="button" class="danger" title="Denunciar este comentário" aria-label="Denunciar comentário de <%= c.authorName %>"
+                data-toggle-target="report-comment-<%= c._id %>" aria-controls="report-comment-<%= c._id %>">
                 <%- icon('flag', 13) %>
               </button>
             <% } %>
-            <% if (isAdmin) { %>
-              <form method="POST" action="/admin/forum/comentario/<%= c._id %>/excluir" style="display:inline;"
-                onsubmit="return confirm('Excluir este comentário?');">
+            <% if (isOwn) { %>
+              <form method="POST" action="/forum/comentario/<%= c._id %>/excluir" class="inline-form"
+                data-confirm="Excluir sua resposta? Esta ação não pode ser desfeita.">
+                <%- include('partials/csrf-field') %>
+                <button type="submit" class="danger" title="Excluir minha resposta" aria-label="Excluir minha resposta"><%- icon('trash2', 13) %></button>
+              </form>
+            <% } %>
+            <% if (isAdmin && !isOwn) { %>
+              <form method="POST" action="/admin/forum/comentario/<%= c._id %>/excluir" class="inline-form"
+                data-confirm="Excluir este comentário?">
                 <%- include('partials/csrf-field') %>
                 <input type="hidden" name="topicId" value="<%= topic._id %>">
-                <button type="submit" class="danger" title="Excluir comentário (admin)">
+                <button type="submit" class="danger" title="Excluir comentário (admin)" aria-label="Excluir comentário de <%= c.authorName %> (admin)">
                   <%- icon('trash2', 13) %>
                 </button>
               </form>
@@ -123,24 +135,19 @@
           </div>
         </div>
         <p class="comment-text"><%= c.text %></p>
-        <% if (loggedIn && !isOwn) { %>
-          <form id="report-comment-<%= c._id %>" method="POST" action="/forum/topico/<%= topic._id %>/denunciar" class="report-form" style="display:none;">
+        <% if (canMarkSolution) { %>
+          <form method="POST" action="/forum/topico/<%= topic._id %>/solucao" class="solution-form">
             <%- include('partials/csrf-field') %>
             <input type="hidden" name="commentId" value="<%= c._id %>">
-            <label class="field-label">Por que você está denunciando este comentário?</label>
-            <select class="input" name="reason" required>
-              <option value="">Selecione um motivo</option>
-              <option value="spam">Spam / propaganda</option>
-              <option value="offensive">Conteúdo ofensivo</option>
-              <option value="personal_info">Expõe dados pessoais de alguém</option>
-              <option value="off_topic">Fora do contexto do Campus</option>
-              <option value="other">Outro motivo</option>
-            </select>
-            <textarea class="input" name="details" rows="2" maxlength="500" placeholder="Detalhes adicionais (opcional)" style="margin-top:0.5rem;"></textarea>
-            <button type="submit" class="btn btn-secondary btn-sm" style="margin-top:0.5rem;">Enviar denúncia</button>
+            <button type="submit" class="solution-btn <%= isSolution ? 'active' : '' %>" aria-pressed="<%= isSolution ? 'true' : 'false' %>">
+              <%- icon('checkCircle2', 14) %><%= isSolution ? 'Desmarcar como solução' : 'Marcar como solução' %>
+            </button>
           </form>
         <% } %>
-      </div>
+        <% if (loggedIn && !isOwn) { %>
+          <%- include('partials/report-form', { formId: 'report-comment-' + c._id, commentId: c._id, label: 'Por que você está denunciando este comentário?' }) %>
+        <% } %>
+      </article>
     <% }) %>
   </div>
 
@@ -150,10 +157,14 @@
         <h3>Sua Resposta</h3>
         <form method="POST" action="/forum/topico/<%= topic._id %>/responder">
           <%- include('partials/csrf-field') %>
-          <textarea class="input" name="text" id="reply-text" rows="4" placeholder="Escreva sua resposta aqui. Seja claro e objetivo..." data-char-count="reply-count"></textarea>
-          <% if (replyError) { %><p class="field-error" style="margin-top:0.25rem;"><%- icon('alertCircle', 12) %><%= replyError %></p><% } %>
+          <label for="reply-text" class="sr-only">Sua resposta</label>
+          <textarea class="input <%= replyError ? 'error' : '' %>" name="text" id="reply-text" rows="4" required maxlength="3000"
+            placeholder="Escreva sua resposta aqui. Seja claro e objetivo (mínimo de 10 caracteres)..."
+            data-char-count="reply-count" data-max="3000"
+            aria-describedby="reply-count<%= replyError ? ' reply-error' : '' %>"<%- replyError ? ' aria-invalid="true"' : '' %>><%= replyText %></textarea>
+          <% if (replyError) { %><p class="field-error reply-error" id="reply-error" tabindex="-1" data-autofocus-error><%- icon('alertCircle', 12) %><%= replyError %></p><% } %>
           <div class="reply-footer-row">
-            <span class="reply-char-count" id="reply-count">0 caracteres</span>
+            <span class="reply-char-count" id="reply-count">0/3000 caracteres</span>
             <button type="submit" class="btn btn-primary btn-sm"><%- icon('send', 14) %>Responder</button>
           </div>
         </form>
@@ -162,7 +173,7 @@
       <div class="login-to-reply">
         <p>Você precisa estar logado para responder.</p>
         <div class="login-to-reply-actions">
-          <a href="/login" class="btn btn-primary btn-sm"><%- icon('logIn', 16) %>Entrar</a>
+          <a href="/login?next=<%= encodeURIComponent(topicUrl) %>" class="btn btn-primary btn-sm"><%- icon('logIn', 16) %>Entrar</a>
           <a href="/register" class="btn btn-secondary btn-sm">Criar conta</a>
         </div>
       </div>
