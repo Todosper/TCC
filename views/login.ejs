@@ -12,6 +12,11 @@
         <div class="auth-error" tabindex="-1" data-autofocus-error><%- icon('alertCircle', 16) %><%= error %></div>
       <% } %>
 
+      <% if (typeof googleEnabled !== 'undefined' && googleEnabled) { %>
+        <%- include('partials/google-button', { href: '/auth/google' + (f.next ? '?next=' + encodeURIComponent(f.next) : ''), label: 'Entrar com o Google' }) %>
+        <div class="auth-divider"><span>ou</span></div>
+      <% } %>
+
       <form class="auth-form" method="POST" action="/login">
         <%- include('partials/csrf-field') %>
         <% if (f.next) { %><input type="hidden" name="next" value="<%= f.next %>"><% } %>

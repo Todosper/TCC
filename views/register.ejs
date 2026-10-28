@@ -28,6 +28,12 @@
           <div class="auth-error" tabindex="-1" data-autofocus-error><%- icon('alertCircle', 16) %>Corrija os campos indicados abaixo e envie novamente.</div>
         <% } %>
 
+        <% if (typeof googleEnabled !== 'undefined' && googleEnabled) { %>
+          <%- include('partials/google-button', { href: '/auth/google', label: 'Criar conta com o Google' }) %>
+          <p class="field-hint google-hint">Use a conta Google do seu e-mail do IFSul.</p>
+          <div class="auth-divider"><span>ou preencha os dados</span></div>
+        <% } %>
+
         <form class="auth-form-grid" method="POST" action="/register">
           <%- include('partials/csrf-field') %>
           <div class="field span-2">

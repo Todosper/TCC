@@ -23,7 +23,7 @@ async function seed() {
   await connectDB();
 
   console.log("Limpando coleções...");
-  const colecoes = ["users", "topics", "comments", "faqcategories", "faqs", "suggestions", "reports", "notifications"];
+  const colecoes = ["users", "topics", "comments", "faqcategories", "faqs", "suggestions", "reports", "notifications", "flaggedposts"];
   for (const nome of colecoes) {
     await mongoose.connection.db.dropCollection(nome).catch(() => {});
   }

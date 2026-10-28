@@ -8,12 +8,6 @@ const Comment = require("../models/Comment");
 const Suggestion = require("../models/Suggestion");
 const firebase = require("../helpers/firebase");
 const { asString } = require("../helpers/query");
-const {
-  normalizeEmail,
-  isValidEmailFormat,
-  isAllowedEmailDomain,
-  EMAIL_DOMAIN_MESSAGE,
-} = require("../helpers/email");
 
 const NAME_MIN = 2;
 const NAME_MAX = 100;
@@ -53,7 +47,10 @@ async function loadActivity(userId) {
   };
 }
 
-async function renderProfile(res, user, { tab = "info", errors = {}, form = null, saved = false, pwSaved = false, status = 200 } = {}) {
+// Resultado da troca de e-mail pelo Google (vem na URL, ver routes/auth.js).
+const EMAIL_CHANGE_CODES = ["ok", "igual", "em-uso", "cancelado", "erro", "indisponivel"];
+
+async function renderProfile(res, user, { tab = "info", errors = {}, form = null, saved = false, pwSaved = false, emailChange = "", status = 200 } = {}) {
   const activity = tab === "activity" ? await loadActivity(user._id) : { topics: [], suggestions: [] };
   res.status(status).render("profile", {
     title: "Meu Perfil",
@@ -61,6 +58,7 @@ async function renderProfile(res, user, { tab = "info", errors = {}, form = null
     tab,
     saved,
     pwSaved,
+    emailChange,
     errors,
     form: form || { name: user.name, email: user.email },
     activity,
@@ -71,7 +69,8 @@ router.get("/profile", requireAuth, asyncHandler(async (req, res) => {
   const user = await User.findById(req.session.user.id).select("-password");
   if (!user) return res.redirect("/login");
   const tab = TABS.includes(req.query.tab) ? req.query.tab : "info";
-  await renderProfile(res, user, { tab, saved: req.query.saved === "1", pwSaved: req.query.pwSaved === "1" });
+  const emailChange = EMAIL_CHANGE_CODES.includes(req.query.trocaEmail) ? req.query.trocaEmail : "";
+  await renderProfile(res, user, { tab, saved: req.query.saved === "1", pwSaved: req.query.pwSaved === "1", emailChange });
 }));
 
 router.post("/profile/info", requireAuth, asyncHandler(async (req, res) => {
@@ -85,36 +84,15 @@ router.post("/profile/info", requireAuth, asyncHandler(async (req, res) => {
   if (name.length < NAME_MIN) errors.name = "Informe seu nome completo.";
   else if (name.length > NAME_MAX) errors.name = `O nome deve ter no máximo ${NAME_MAX} caracteres.`;
 
-  // Em contas vinculadas ao Firebase, o e-mail é a identidade verificada e não
-  // pode ser trocado por aqui (senão pularia a verificação). Em contas antigas
-  // ele pode mudar; a regra de domínio só vale quando o e-mail é alterado, para
-  // não bloquear quem apenas atualiza o nome.
-  let newEmail = user.email;
-  if (!user.firebaseUid) {
-    newEmail = normalizeEmail(req.body.email);
-    form.email = newEmail || asString(req.body.email);
-    if (newEmail !== user.email) {
-      if (!isValidEmailFormat(newEmail)) errors.email = "E-mail inválido.";
-      else if (!isAllowedEmailDomain(newEmail)) errors.email = EMAIL_DOMAIN_MESSAGE;
-      else if (await User.exists({ email: newEmail, _id: { $ne: user._id } })) errors.email = "Este e-mail já está em uso.";
-    }
-  }
-
+  // O e-mail não muda por este formulário: a troca é feita com o Google, que
+  // confirma que a pessoa é dona do novo e-mail (ver routes/auth.js).
   if (Object.keys(errors).length > 0) {
     return renderProfile(res, user, { tab: "info", errors, form, status: 400 });
   }
 
   const nameChanged = name !== user.name;
   user.name = name;
-  user.email = newEmail;
-  try {
-    await user.save();
-  } catch (err) {
-    if (err && err.code === 11000) {
-      return renderProfile(res, user, { tab: "info", errors: { email: "Este e-mail já está em uso." }, form, status: 400 });
-    }
-    throw err;
-  }
+  await user.save();
 
   // O nome é copiado para tópicos, comentários e sugestões no momento em que
   // são criados; ao trocá-lo, as cópias antigas são atualizadas.
@@ -153,7 +131,7 @@ router.post("/profile/senha", requireAuth, asyncHandler(async (req, res) => {
   let match;
   if (useFirebase) {
     try {
-      fbSession = await firebase.signIn(user.email, current);
+      fbSession = await firebase.signIn(user.firebaseEmail || user.email, current);
       match = true;
     } catch (err) {
       if (!firebase.isInvalidCredentials(err)) throw err;

@@ -20,6 +20,8 @@ const suggestionSchema = new mongoose.Schema(
       default: "pending",
     },
     rejectionReason: { type: String, trim: true, maxlength: 1000, default: "" },
+    // Termos proibidos encontrados pela moderação automática (helpers/moderation.js).
+    flaggedTerms: { type: [String], default: [] },
     status: {
       type: String,
       enum: ["analysis", "planned", "implemented", "not_implemented"],

@@ -3,6 +3,9 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const firebase = require("../helpers/firebase");
+const google = require("../helpers/google");
+const accounts = require("../helpers/accounts");
+const { requireAuth } = require("../middleware/auth");
 const { loginLimiter, forgotLimiter, registerLimiter } = require("../middleware/rateLimit");
 const asyncHandler = require("../middleware/asyncHandler");
 const { asString } = require("../helpers/query");
@@ -12,6 +15,7 @@ const {
   isValidEmailFormat,
   isAllowedEmailDomain,
   EMAIL_DOMAIN_MESSAGE,
+  ALLOWED_EMAIL_DOMAINS,
 } = require("../helpers/email");
 
 // Intervalo mínimo entre dois reenvios automáticos do e-mail de verificação
@@ -88,7 +92,7 @@ router.post("/login", loginLimiter, async (req, res) => {
 
       let fbSession;
       try {
-        fbSession = await firebase.signIn(user.email, password);
+        fbSession = await firebase.signIn(user.firebaseEmail || user.email, password);
       } catch (err) {
         if (firebase.isInvalidCredentials(err)) return fail("E-mail ou senha inválidos.");
         if (err.code === "TOO_MANY_ATTEMPTS_TRY_LATER") {
@@ -172,8 +176,7 @@ router.post("/register", registerLimiter, asyncHandler(async (req, res) => {
   if (password !== password2) errors.password2 = "As senhas não coincidem.";
 
   if (Object.keys(errors).length === 0) {
-    const existing = await User.findOne({ email });
-    if (existing) errors.email = "Este e-mail já está cadastrado.";
+    if (await accounts.isEmailTaken(email)) errors.email = "Este e-mail já está cadastrado.";
   }
 
   if (Object.keys(errors).length > 0) {
@@ -211,7 +214,7 @@ router.post("/register", registerLimiter, asyncHandler(async (req, res) => {
 
   // 2) Cria o usuário no MongoDB.
   try {
-    const data = { name, email, password };
+    const data = { name, email, password, emailHistory: [email] };
     if (fbSession) {
       data.firebaseUid = fbSession.localId;
       data.emailVerified = false;
@@ -274,7 +277,7 @@ router.post("/forgot-password", forgotLimiter, async (req, res) => {
             if (err.code !== "EMAIL_EXISTS") throw err;
           }
         }
-        await firebase.sendPasswordReset(email);
+        await firebase.sendPasswordReset(user.firebaseEmail || email);
       }
     } catch (err) {
       console.error("Falha ao enviar e-mail de recuperação de senha:", err.message);
@@ -283,6 +286,117 @@ router.post("/forgot-password", forgotLimiter, async (req, res) => {
 
   res.render("forgot-password", { title: "Recuperar Senha", error: null, sent: true });
 });
+
+// ─── LOGIN / CADASTRO COM O GOOGLE ──────────────────────────────────────────
+// O mesmo endereço de retorno atende dois usos, guardados na sessão:
+//   "login"  entrar com o Google, ou criar a conta se o e-mail for de um
+//            domínio permitido (ALLOWED_EMAIL_DOMAINS) e nunca usado;
+//   "email"  trocar o e-mail da conta logada pelo da conta Google escolhida.
+const GOOGLE_AUTH_MAX_AGE_MS = 10 * 60 * 1000;
+
+const GOOGLE_LOGIN_ERRORS = {
+  blocked: ["Sua conta está bloqueada. Contate a administração.", 403],
+  "other-google": ["Este e-mail está ligado a outra conta Google. Entre com a conta Google que você cadastrou.", 403],
+  domain: [
+    `Só é possível criar uma conta com e-mail do IFSul (${ALLOWED_EMAIL_DOMAINS.map((d) => "@" + d).join(" ou ")}). Se você já tem conta, entre com o e-mail ou a conta Google cadastrados nela.`,
+    403,
+  ],
+  taken: ["Este e-mail já foi usado em uma conta que hoje usa outro e-mail. Entre com o e-mail atual dessa conta.", 403],
+};
+
+function beginGoogle(req, res, next, purpose, target) {
+  const request = google.createAuthRequest(google.redirectUri(req));
+  req.session.googleAuth = {
+    purpose,
+    next: target,
+    userId: req.session.user ? req.session.user.id : null,
+    state: request.state,
+    nonce: request.nonce,
+    verifier: request.verifier,
+    createdAt: Date.now(),
+  };
+  req.session.save((err) => (err ? next(err) : res.redirect(request.url)));
+}
+
+router.get("/auth/google", (req, res, next) => {
+  const target = safeNext(asString(req.query.next));
+  if (req.session.user) return res.redirect(target);
+  if (!google.isConfigured()) return renderLogin(res, "O login com o Google não está disponível no momento.", { status: 503 });
+  beginGoogle(req, res, next, "login", target);
+});
+
+router.get("/auth/google/email", requireAuth, (req, res, next) => {
+  if (!google.isConfigured()) return res.redirect("/profile?trocaEmail=indisponivel");
+  beginGoogle(req, res, next, "email", "/profile");
+});
+
+router.get("/auth/google/callback", loginLimiter, asyncHandler(async (req, res) => {
+  const saved = req.session.googleAuth;
+  delete req.session.googleAuth;
+
+  const purpose = saved ? saved.purpose : "login";
+  const formNext = saved && saved.next && saved.next !== "/" && purpose === "login" ? saved.next : "";
+  const failLogin = (message, status = 400) => renderLogin(res, message, { next: formNext, status });
+  const fail = (message, code, status = 400) =>
+    purpose === "email" ? res.redirect(`/profile?trocaEmail=${code}`) : failLogin(message, status);
+
+  const state = asString(req.query.state);
+  const stateOk =
+    saved &&
+    Date.now() - saved.createdAt < GOOGLE_AUTH_MAX_AGE_MS &&
+    state.length === saved.state.length &&
+    crypto.timingSafeEqual(Buffer.from(state), Buffer.from(saved.state));
+  if (!stateOk) return failLogin("Não foi possível concluir o login com o Google. Tente novamente.");
+
+  // A pessoa cancelou na tela do Google.
+  if (req.query.error) {
+    return purpose === "email" ? res.redirect("/profile?trocaEmail=cancelado") : failLogin("Login com o Google cancelado.", 200);
+  }
+
+  let profile;
+  try {
+    profile = await google.fetchProfile({
+      code: asString(req.query.code),
+      verifier: saved.verifier,
+      nonce: saved.nonce,
+      redirectUri: google.redirectUri(req),
+    });
+  } catch (err) {
+    if (err instanceof google.GoogleAuthError && err.code === "unverified") {
+      return fail("O Google informou que o e-mail dessa conta não foi verificado.", "erro");
+    }
+    console.error("Falha no login com o Google:", err.message);
+    return fail("Não foi possível entrar com o Google. Tente novamente.", "erro", 502);
+  }
+
+  if (purpose === "email") {
+    // Só vale se for a mesma pessoa que iniciou o pedido, ainda logada.
+    if (!req.session.user || req.session.user.id !== saved.userId) return res.redirect("/login");
+    const user = await User.findById(saved.userId);
+    if (!user) return res.redirect("/login");
+
+    const result = await accounts.changeEmailWithGoogle(user, profile);
+    if (result.error === "same") return res.redirect("/profile?trocaEmail=igual");
+    if (result.error === "taken") return res.redirect("/profile?trocaEmail=em-uso");
+    req.session.user.email = user.email;
+    return res.redirect("/profile?trocaEmail=ok");
+  }
+
+  let result;
+  try {
+    result = await accounts.resolveGoogleLogin(profile);
+  } catch (err) {
+    if (err && err.code === 11000) return failLogin("Não foi possível entrar com o Google. Tente novamente.", 409);
+    throw err;
+  }
+  if (result.error) {
+    const [message, status] = GOOGLE_LOGIN_ERRORS[result.error];
+    return failLogin(message, status);
+  }
+
+  await startSession(req, result.user);
+  res.redirect(safeNext(saved.next));
+}));
 
 // ─── LOGOUT ─────────────────────────────────────────────────────────────────
 // É POST (e não GET) para que outro site não consiga encerrar a sessão do

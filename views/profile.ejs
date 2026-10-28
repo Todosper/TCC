@@ -26,6 +26,18 @@
       <% if (saved) { %>
         <div class="auth-success" role="status"><%- icon('checkCircle2', 16) %>Dados salvos com sucesso!</div>
       <% } %>
+      <% if (emailChange === 'ok') { %>
+        <div class="auth-success" role="status"><%- icon('checkCircle2', 16) %>E-mail alterado! A partir de agora, entre com o novo e-mail.</div>
+      <% } else if (emailChange) { %>
+        <% var emailChangeMsg = {
+          'igual': 'Esse já é o e-mail da sua conta.',
+          'em-uso': 'Esse e-mail já está em uso ou já foi usado em outra conta.',
+          'cancelado': 'A troca de e-mail foi cancelada.',
+          'indisponivel': 'A troca de e-mail está indisponível no momento.',
+          'erro': 'Não foi possível confirmar o e-mail com o Google. Tente novamente.'
+        }[emailChange]; %>
+        <div class="auth-error" role="alert"><%- icon('alertCircle', 16) %><%= emailChangeMsg %></div>
+      <% } %>
       <% if (infoErrors) { %>
         <div class="auth-error" tabindex="-1" data-autofocus-error><%- icon('alertCircle', 16) %>Corrija os campos indicados abaixo e salve novamente.</div>
       <% } %>
@@ -39,11 +51,17 @@
         </div>
         <div class="field span-2">
           <label for="profile-email">E-mail</label>
-          <input class="input <%= errors.email ? 'error' : '' %>" id="profile-email" name="email" type="email" value="<%= form.email %>" autocomplete="email"
-            <%= user.firebaseUid ? 'readonly' : 'required' %>
-            aria-describedby="<%= user.firebaseUid ? 'profile-email-hint' : '' %><%= errors.email ? ' profile-email-error' : '' %>"<%- errors.email ? ' aria-invalid="true"' : '' %>>
-          <% if (user.firebaseUid) { %><p class="field-hint" id="profile-email-hint">O e-mail está vinculado à sua conta e não pode ser alterado aqui.</p><% } %>
-          <% if (errors.email) { %><p class="field-error" id="profile-email-error"><%- icon('alertCircle', 12) %><%= errors.email %></p><% } %>
+          <input class="input" id="profile-email" type="email" value="<%= user.email %>" autocomplete="email" readonly aria-describedby="profile-email-hint">
+          <p class="field-hint" id="profile-email-hint">
+            <% if (typeof googleEnabled !== 'undefined' && googleEnabled) { %>
+              Para trocar, confirme o novo e-mail entrando com a conta Google dele (Gmail ou outro e-mail Google). O e-mail atual continua registrado e não poderá criar outra conta.
+            <% } else { %>
+              A troca de e-mail está indisponível no momento.
+            <% } %>
+          </p>
+          <% if (typeof googleEnabled !== 'undefined' && googleEnabled) { %>
+            <a href="/auth/google/email" class="btn btn-outline btn-sm profile-email-btn">Trocar e-mail com o Google</a>
+          <% } %>
         </div>
         <div class="field">
           <label for="profile-role">Perfil</label>

@@ -8,6 +8,9 @@
     <span class="badge <%= suggestion.moderationStatus === 'approved' ? 'badge-emerald' : suggestion.moderationStatus === 'rejected' ? 'badge-red' : 'badge-amber' %>">
       <%= suggestion.moderationStatus === 'approved' ? 'Aprovada' : suggestion.moderationStatus === 'rejected' ? 'Rejeitada' : 'Pendente de aprovação' %>
     </span>
+    <% if (suggestion.flaggedTerms && suggestion.flaggedTerms.length) { %>
+      <div class="auth-error"><%- icon('alertCircle', 16) %>A moderação automática encontrou termos proibidos: <%= suggestion.flaggedTerms.join(', ') %>.</div>
+    <% } %>
     <h3 class="admin-suggestion-title"><%= suggestion.title %></h3>
     <p class="suggestion-description"><%= suggestion.description %></p>
   </div>

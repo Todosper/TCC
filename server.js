@@ -41,6 +41,7 @@ app.disable("x-powered-by");
 app.locals.assetVersion = assetVersion;
 app.locals.catLabel = catLabel;
 app.locals.catCls = catCls;
+app.locals.googleEnabled = require("./helpers/google").isConfigured();
 
 // Datas sempre no horário de Brasília, independentemente do fuso do servidor.
 const TIME_ZONE = "America/Sao_Paulo";

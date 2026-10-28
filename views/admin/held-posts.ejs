@@ -1,0 +1,83 @@
+<%- include('../partials/admin-header') %>
+<%
+  var heldTabs = [
+    { id: 'pending', label: 'Pendentes' }, { id: 'approved', label: 'Aprovadas' },
+    { id: 'rejected', label: 'Rejeitadas' }, { id: 'all', label: 'Todas' }
+  ];
+%>
+<div class="admin-table-toolbar">
+  <h2>Postagens em análise (<%= total %>)</h2>
+  <nav class="tabs" aria-label="Filtrar postagens em análise">
+    <% heldTabs.forEach(function (t) { %>
+      <a class="tab-btn <%= filter === t.id ? 'active' : '' %>" href="/admin/retidos?filter=<%= t.id %>"<%- filter === t.id ? ' aria-current="page"' : '' %>><%= t.label %></a>
+    <% }) %>
+  </nav>
+</div>
+
+<% if (notice) { %>
+  <div class="auth-error" tabindex="-1" data-autofocus-error><%- icon('alertCircle', 16) %><%= notice %></div>
+<% } %>
+
+<div class="admin-table-wrap">
+  <table class="admin-table">
+    <thead><tr><th>Postagem</th><th class="sm-table-cell">Termos detectados</th><th class="md-table-cell">Status</th><th class="right">Ações</th></tr></thead>
+    <tbody>
+      <% posts.forEach(function(p) { %>
+        <tr>
+          <td>
+            <span class="badge badge-gray badge-inline"><%= p.type === 'topic' ? 'Tópico' : 'Resposta' %></span>
+            <% if (p.type === 'topic') { %>
+              <span class="admin-table-title"><%= p.title %></span>
+            <% } else if (p.topic) { %>
+              <span class="text-xs text-gray-500">em “<%= p.topic.title %>”</span>
+            <% } else { %>
+              <span class="text-xs text-gray-500">tópico já removido</span>
+            <% } %>
+            <div class="text-xs text-gray-500"><%= p.authorName %> · <%= fmtDateTime(p.createdAt) %></div>
+            <details>
+              <summary class="text-xs">Ver texto completo</summary>
+              <p class="text-sm" style="white-space:pre-line;margin:0.5rem 0 0;"><%= p.content %></p>
+            </details>
+          </td>
+          <td class="sm-table-cell">
+            <% p.blockedTerms.forEach(function(term) { %>
+              <span class="badge badge-red badge-inline"><%= term %></span>
+            <% }) %>
+          </td>
+          <td class="md-table-cell">
+            <span class="badge <%= p.status === 'approved' ? 'badge-emerald' : p.status === 'rejected' ? 'badge-red' : 'badge-amber' %>">
+              <%= p.status === 'approved' ? 'Aprovada' : p.status === 'rejected' ? 'Rejeitada' : 'Pendente' %>
+            </span>
+          </td>
+          <td class="right">
+            <div class="table-actions">
+              <% if (p.status === 'pending') { %>
+                <form method="POST" action="/admin/retidos/<%= p._id %>/aprovar" class="inline-form"
+                  data-confirm="Aprovar e publicar esta postagem?">
+                  <%- include('../partials/csrf-field') %>
+                  <button type="submit" class="table-icon-btn edit" title="Aprovar e publicar" aria-label="Aprovar e publicar a postagem de <%= p.authorName %>"><%- icon('checkCircle2', 14) %></button>
+                </form>
+                <form method="POST" action="/admin/retidos/<%= p._id %>/rejeitar" class="inline-form"
+                  data-confirm="Rejeitar esta postagem? Ela não será publicada e o autor será avisado.">
+                  <%- include('../partials/csrf-field') %>
+                  <button type="submit" class="table-icon-btn danger" title="Rejeitar" aria-label="Rejeitar a postagem de <%= p.authorName %>"><%- icon('x', 14) %></button>
+                </form>
+              <% } %>
+            </div>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<% if (!posts.length) { %>
+  <div class="card suggestion-empty admin-empty">
+    <%- icon('shield', 40) %>
+    <h3>Nenhuma postagem nesta lista</h3>
+    <p>Tópicos e respostas bloqueados pela moderação automática aparecerão aqui para análise.</p>
+  </div>
+<% } %>
+
+<%- include('../partials/pagination') %>
+<%- include('../partials/admin-footer') %>

@@ -32,6 +32,12 @@
     <div class="stat-delta">Pendentes</div>
   </div>
   <div class="stat-card">
+    <div class="stat-icon red"><%- icon('shield', 16) %></div>
+    <div class="stat-value"><%= stats.pendingHeldCount %></div>
+    <div class="stat-label">Em análise</div>
+    <div class="stat-delta">Pendentes</div>
+  </div>
+  <div class="stat-card">
     <div class="stat-icon red"><%- icon('flag', 16) %></div>
     <div class="stat-value"><%= stats.pendingReportCount %></div>
     <div class="stat-label">Denúncias</div>
@@ -78,6 +84,7 @@
       <a href="/admin/forum" class="quick-action-btn qa-blue"><%- icon('shield', 16) %><span>Moderar Tópicos</span></a>
       <a href="/admin/users" class="quick-action-btn qa-purple"><%- icon('users', 16) %><span>Gerenciar Usuários</span></a>
       <a href="/admin/sugestoes" class="quick-action-btn qa-red"><%- icon('lightbulb', 16) %><span>Moderar Sugestões (<%= stats.pendingSuggestionCount %>)</span></a>
+      <a href="/admin/retidos" class="quick-action-btn qa-red"><%- icon('shield', 16) %><span>Postagens em Análise (<%= stats.pendingHeldCount %>)</span></a>
       <a href="/admin/denuncias" class="quick-action-btn qa-red"><%- icon('flag', 16) %><span>Ver Denúncias (<%= stats.pendingReportCount %>)</span></a>
     </div>
   </div>

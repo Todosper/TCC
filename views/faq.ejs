@@ -64,6 +64,9 @@
           <div class="faq-answer" id="faq-a-<%= f._id %>" role="region" aria-label="Resposta">
             <div class="faq-answer-inner">
               <p><%= f.answer %></p>
+              <% if (f.hasDetails) { %>
+                <a href="/faq/<%= f._id %>" class="faq-more-link">Ler resposta completa<%- icon('chevronRight', 14) %></a>
+              <% } %>
             </div>
             <div class="faq-helpful">
               <span>Ainda ficou com dúvida?</span>

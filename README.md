@@ -17,7 +17,7 @@ O site abre em `http://localhost:3000`. O `seed` não roda com `NODE_ENV=product
 
 ## Variáveis de ambiente
 
-Todas estão descritas em `.env.example`. As principais: `MONGODB_URI`, `SESSION_SECRET`, `FIREBASE_API_KEY`, `FIREBASE_SERVICE_ACCOUNT` e `ALLOWED_EMAIL_DOMAINS`.
+Todas estão descritas em `.env.example`. As principais: `MONGODB_URI`, `SESSION_SECRET`, `FIREBASE_API_KEY`, `FIREBASE_SERVICE_ACCOUNT`, `ALLOWED_EMAIL_DOMAINS` e, para o login com o Google, `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`.
 
 Para ativar a compressão das respostas, instale o pacote opcional: `npm install compression`.
 

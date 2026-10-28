@@ -24,6 +24,7 @@
           <td>
             <div class="line-clamp-1 admin-table-title"><%= s.title %></div>
             <span class="text-xs text-gray-500"><%= fmtDate(s.createdAt) %><%= s.isAnonymous ? ' · publicação anônima' : '' %></span>
+            <% if (s.flaggedTerms && s.flaggedTerms.length) { %><span class="badge badge-red badge-inline">Termos proibidos</span><% } %>
           </td>
           <td class="md-table-cell"><%= s.authorName %></td>
           <td class="sm-table-cell">

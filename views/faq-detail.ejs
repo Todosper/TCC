@@ -1,0 +1,25 @@
+<%
+  var paragraphs = faq.details.split(/\r?\n\s*\r?\n/).map(function (p) { return p.trim(); }).filter(Boolean);
+%>
+<div class="container-sm page-pad">
+  <nav class="breadcrumb" aria-label="Você está em">
+    <a href="/faq"><%- icon('arrowLeft', 16) %>FAQ</a>
+    <%- icon('chevronRight', 12, 'chevron') %>
+    <span class="current" aria-current="page"><%= faq.question %></span>
+  </nav>
+
+  <article class="faq-detail-card">
+    <% if (faq.category) { %><span class="badge badge-gray"><%= faq.category.name %></span><% } %>
+    <h1 class="faq-detail-title"><%= faq.question %></h1>
+    <p class="faq-detail-summary"><%= faq.answer %></p>
+    <div class="faq-detail-body">
+      <% paragraphs.forEach(function (text) { %>
+        <p><%= text %></p>
+      <% }) %>
+    </div>
+    <div class="faq-detail-footer">
+      <a href="/faq" class="btn btn-outline btn-sm"><%- icon('arrowLeft', 14) %>Voltar ao FAQ</a>
+      <a href="/forum" class="btn btn-secondary btn-sm">Pergunte no Fórum</a>
+    </div>
+  </article>
+</div>

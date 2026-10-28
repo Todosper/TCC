@@ -10,12 +10,14 @@ const FaqCategory = require("../models/FaqCategory");
 const User = require("../models/User");
 const Suggestion = require("../models/Suggestion");
 const Report = require("../models/Report");
+const FlaggedPost = require("../models/FlaggedPost");
 const { CATEGORIES } = require("../models/categories");
 const { createNotification } = require("../helpers/notifications");
 const { buildSearchRegex } = require("../helpers/search");
 const { asString, isObjectIdString, paginate } = require("../helpers/query");
 const { authorRoleLabel } = require("../helpers/roles");
 const { wantsJson } = require("../helpers/http");
+const { moderateFields } = require("../helpers/moderation");
 const { deleteTopicCascade, deleteCommentCascade } = require("../helpers/forumCleanup");
 const { contentLimiter } = require("../middleware/rateLimit");
 
@@ -140,6 +142,7 @@ router.get("/forum", asyncHandler(async (req, res) => {
     baseQuery: baseQueryParts.join("&"),
     basePath: "/forum",
     removed: req.query.removido === "1",
+    analysis: req.query.analise === "1",
   });
 }));
 
@@ -169,10 +172,24 @@ router.post("/forum/novo", requireAuth, contentLimiter, asyncHandler(async (req,
   }
 
   try {
+    const moderated = moderateFields({ title, body });
+    if (moderated.blocked) {
+      await FlaggedPost.create({
+        type: "topic",
+        author: req.session.user.id,
+        authorName: req.session.user.name,
+        title: moderated.values.title,
+        category,
+        content: moderated.values.body,
+        blockedTerms: moderated.blockedTerms,
+      });
+      return res.redirect("/forum?analise=1");
+    }
+
     const topic = await Topic.create({
-      title,
+      title: moderated.values.title,
       category,
-      content: body,
+      content: moderated.values.body,
       author: req.session.user.id,
       authorName: req.session.user.name,
       tags: [],
@@ -213,6 +230,7 @@ const TOPIC_NOTICES = {
   reported: "Denúncia enviada. A moderação vai revisar.",
   created: "Tópico publicado!",
   removed: "Sua resposta foi excluída.",
+  analise: "Sua resposta foi enviada para análise da moderação e será publicada se for aprovada.",
 };
 
 // Monta a página do tópico. `comments` pode vir já carregado (rota GET).
@@ -281,12 +299,26 @@ router.post("/forum/topico/:id/responder", requireAuth, contentLimiter, asyncHan
     return renderTopicPage(req, res, topic, { replyError: `A resposta pode ter no máximo ${REPLY_MAX} caracteres.`, replyText: rawText, status: 400 });
   }
 
+  const moderated = moderateFields({ text });
+  if (moderated.blocked) {
+    await FlaggedPost.create({
+      type: "comment",
+      author: req.session.user.id,
+      authorName: req.session.user.name,
+      authorRole: authorRoleLabel(req.session.user),
+      topic: topic._id,
+      content: moderated.values.text,
+      blockedTerms: moderated.blockedTerms,
+    });
+    return res.redirect(`/forum/topico/${topic._id}?analise=1`);
+  }
+
   const comment = await Comment.create({
     topic: topic._id,
     author: req.session.user.id,
     authorName: req.session.user.name,
     authorRole: authorRoleLabel(req.session.user),
-    text,
+    text: moderated.values.text,
   });
 
   if (String(topic.author) !== String(req.session.user.id)) {
@@ -431,11 +463,14 @@ router.get("/faq", asyncHandler(async (req, res) => {
 
   // As três consultas são independentes e rodam em paralelo. A contagem por
   // categoria é feita pelo próprio banco (agregação).
-  const [categories, faqs, countRows] = await Promise.all([
+  const [categories, faqRows, countRows] = await Promise.all([
     FaqCategory.find().lean(),
-    Faq.find(filter).sort({ createdAt: 1, _id: 1 }).select("question answer").lean(),
+    Faq.find(filter).sort({ createdAt: 1, _id: 1 }).select("question answer details").lean(),
     Faq.aggregate([{ $group: { _id: "$category", n: { $sum: 1 } } }]),
   ]);
+
+  // A lista só precisa saber se existe página própria, não do texto longo.
+  const faqs = faqRows.map(({ details, ...faq }) => ({ ...faq, hasDetails: !!details }));
 
   const counts = {};
   countRows.forEach((row) => {
@@ -443,6 +478,17 @@ router.get("/faq", asyncHandler(async (req, res) => {
   });
 
   res.render("faq", { title: "FAQ", faqs, categories, counts, query: q, selCat: cat });
+}));
+
+// Página própria de uma pergunta com resposta completa. Perguntas sem texto
+// longo continuam só no acordeão da lista.
+router.get("/faq/:id", asyncHandler(async (req, res) => {
+  if (!isObjectIdString(req.params.id)) return notFound(res);
+  const faq = await Faq.findById(req.params.id).populate("category", "name").lean();
+  if (!faq) return notFound(res);
+  if (!faq.details) return res.redirect(`/faq#faq-${faq._id}`);
+
+  res.render("faq-detail", { title: faq.question, faq });
 }));
 
 // ─── SUGESTÕES PARA O CAMPUS ───────────────────────────────────────────────
@@ -503,12 +549,16 @@ router.post("/sugestoes/nova", requireAuth, contentLimiter, asyncHandler(async (
   }
 
   try {
+    // Toda sugestão já espera a aprovação da administração; quando há termo
+    // proibido, os termos encontrados ficam registrados para o administrador.
+    const moderated = moderateFields({ title, description });
     await Suggestion.create({
-      title,
-      description,
+      title: moderated.values.title,
+      description: moderated.values.description,
       author: req.session.user.id,
       authorName: req.session.user.name,
       isAnonymous: identity === "anonymous",
+      flaggedTerms: moderated.blockedTerms,
     });
     res.redirect("/sugestoes?enviada=1");
   } catch (err) {

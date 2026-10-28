@@ -25,6 +25,21 @@ const userSchema = new mongoose.Schema(
     firebaseUid: { type: String, unique: true, sparse: true },
     emailVerified: { type: Boolean },
     verificationEmailSentAt: { type: Date },
+
+    // E-mail com que a conta existe no Firebase, quando é diferente de `email`
+    // (acontece se o e-mail foi trocado e o Firebase não pôde ser atualizado).
+    // Ausente = o mesmo `email`.
+    firebaseEmail: { type: String, lowercase: true, trim: true },
+
+    // ── Login com o Google ─────────────────────────────────────────────────
+    // Identificador da conta Google vinculada (campo "sub" do Google).
+    googleId: { type: String, unique: true, sparse: true },
+
+    // Todos os e-mails que a conta já teve, incluindo o atual. Um e-mail que
+    // aparece aqui não pode ser usado para criar outra conta nem ser colocado
+    // em outra conta, mesmo depois de a conta trocar de e-mail. Contas antigas
+    // podem não ter o campo; nelas só vale o `email` atual.
+    emailHistory: { type: [String], default: [] },
   },
   { timestamps: true }
 );
@@ -50,6 +65,7 @@ userSchema.methods.roleLabel = function () {
 // excluir, bloquear ou rebaixar administradores (para nunca zerar o número de
 // admins) e `createdAt` ordena a listagem de usuários e os contadores do painel.
 userSchema.index({ isAdmin: 1 });
+userSchema.index({ emailHistory: 1 });
 userSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model("User", userSchema);

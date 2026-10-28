@@ -360,7 +360,7 @@ var EYE_OFF_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"
   // Depois de salvar/publicar, o servidor redireciona com ?submitted=1 etc. Com
   // o aviso já exibido, esses parâmetros saem da barra de endereço; assim ele
   // não reaparece ao recarregar a página nem ao compartilhar o link.
-  var TRANSIENT = ["submitted", "reported", "created", "removed", "removido", "enviada", "saved", "pwSaved", "ok", "erro"];
+  var TRANSIENT = ["submitted", "reported", "created", "removed", "removido", "enviada", "analise", "trocaEmail", "saved", "pwSaved", "ok", "erro"];
   if (window.history && window.history.replaceState && window.location.search) {
     var params = new URLSearchParams(window.location.search);
     var changed = false;

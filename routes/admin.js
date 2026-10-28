@@ -10,6 +10,7 @@ const FaqCategory = require("../models/FaqCategory");
 const Suggestion = require("../models/Suggestion");
 const Notification = require("../models/Notification");
 const Report = require("../models/Report");
+const FlaggedPost = require("../models/FlaggedPost");
 const { createNotification } = require("../helpers/notifications");
 const { buildSearchRegex } = require("../helpers/search");
 const { asString, isObjectIdString, paginate } = require("../helpers/query");
@@ -17,6 +18,7 @@ const { deleteTopicCascade, deleteCommentCascade } = require("../helpers/forumCl
 const firebase = require("../helpers/firebase");
 
 const PAGE_SIZE = 20;
+const FAQ_DETAILS_MAX = 10000;
 
 // Cores e ícones disponíveis para as categorias do FAQ (devem existir no CSS e
 // no mapa de ícones de views/faq.ejs).
@@ -51,6 +53,7 @@ router.get("/", asyncHandler(async (req, res) => {
 
   const [
     userCount, topicCount, commentCount, faqCount, blockedCount, pendingSuggestionCount, pendingReportCount,
+    pendingHeldCount,
     newUsersThisMonth, newTopicsThisWeek, newCommentsThisWeek, newFaqsThisWeek,
     recentTopics, recentUsers,
   ] = await Promise.all([
@@ -62,6 +65,7 @@ router.get("/", asyncHandler(async (req, res) => {
     User.countDocuments({ status: "bloqueado" }),
     Suggestion.countDocuments({ moderationStatus: "pending" }),
     Report.countDocuments({ status: "pending" }),
+    FlaggedPost.countDocuments({ status: "pending" }),
     // Variações do período exibidas nos cartões do painel.
     User.countDocuments({ createdAt: { $gte: startOfMonth } }),
     Topic.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
@@ -77,6 +81,7 @@ router.get("/", asyncHandler(async (req, res) => {
     tab: "dashboard",
     stats: {
       userCount, topicCount, commentCount, faqCount, blockedCount, pendingSuggestionCount, pendingReportCount,
+      pendingHeldCount,
       newUsersThisMonth, newTopicsThisWeek, newCommentsThisWeek, newFaqsThisWeek,
     },
     recentTopics,
@@ -94,14 +99,16 @@ router.get("/faq", asyncHandler(async (req, res) => {
 async function validateFaqForm(body) {
   const question = asString(body.question).trim();
   const answer = asString(body.answer).trim();
+  const details = asString(body.details).trim();
   const category = asString(body.category);
   const errors = {};
   if (!question) errors.question = "Pergunta obrigatória.";
   if (!answer) errors.answer = "Resposta obrigatória.";
+  if (details.length > FAQ_DETAILS_MAX) errors.details = `A resposta completa pode ter no máximo ${FAQ_DETAILS_MAX} caracteres.`;
   if (!isObjectIdString(category) || !(await FaqCategory.exists({ _id: category }))) {
     errors.category = "Selecione uma categoria.";
   }
-  return { values: { question, answer, category }, errors };
+  return { values: { question, answer, details, category }, errors };
 }
 
 router.get("/faq/novo", asyncHandler(async (req, res) => {
@@ -299,6 +306,121 @@ router.post("/denuncias/:id/excluir-conteudo", asyncHandler(async (req, res) => 
     }
   }
   res.redirect("/admin/denuncias");
+}));
+
+// ─── POSTAGENS EM ANÁLISE (moderação automática) ────────────────────────────
+// Tópicos e respostas bloqueados por conterem termos proibidos (ver
+// helpers/moderation.js). Nada disso aparece no fórum até ser aprovado.
+const HELD_FILTERS = ["all", "pending", "approved", "rejected"];
+
+router.get("/retidos", asyncHandler(async (req, res) => {
+  const requested = asString(req.query.filter);
+  const filter = HELD_FILTERS.includes(requested) ? requested : "pending";
+  const query = filter === "all" ? {} : { status: filter };
+
+  const { items: posts, total, totalPages, page: safePage } = await paginate({
+    page: req.query.page,
+    pageSize: PAGE_SIZE,
+    count: () => FlaggedPost.countDocuments(query),
+    find: (skip, limit) => FlaggedPost.find(query)
+      .populate("topic", "title")
+      .sort(filter === "pending" ? { createdAt: 1 } : { createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+  });
+
+  const messages = {
+    topico: "Este tópico não existe mais, então a resposta não pode ser publicada. Rejeite-a.",
+    encerrado: "Este tópico foi encerrado e não aceita novas respostas. Reabra o tópico ou rejeite a resposta.",
+  };
+
+  res.render("admin/held-posts", {
+    title: "Postagens em análise", tab: "held", posts, total, filter,
+    notice: messages[asString(req.query.erro)] || null,
+    page: safePage, totalPages, baseQuery: `filter=${encodeURIComponent(filter)}`, basePath: "/admin/retidos",
+  });
+}));
+
+router.post("/retidos/:id/aprovar", asyncHandler(async (req, res) => {
+  if (!isObjectIdString(req.params.id)) return res.redirect("/admin/retidos");
+  const held = await FlaggedPost.findOne({ _id: req.params.id, status: "pending" }).lean();
+  if (!held) return res.redirect("/admin/retidos");
+
+  let topic = null;
+  if (held.type === "comment") {
+    topic = await Topic.findById(held.topic).lean();
+    if (!topic) return res.redirect("/admin/retidos?erro=topico");
+    if (topic.locked) return res.redirect("/admin/retidos?erro=encerrado");
+  }
+
+  // Marca como aprovada antes de publicar: dois cliques seguidos não geram
+  // duas publicações.
+  const claimed = await FlaggedPost.findOneAndUpdate(
+    { _id: held._id, status: "pending" },
+    { status: "approved", reviewedAt: new Date() }
+  );
+  if (!claimed) return res.redirect("/admin/retidos");
+
+  if (held.type === "topic") {
+    const created = await Topic.create({
+      title: held.title,
+      category: held.category,
+      content: held.content,
+      author: held.author,
+      authorName: held.authorName,
+      tags: [],
+    });
+    await createNotification(
+      held.author,
+      "post_approved",
+      `Seu tópico "${held.title}" foi aprovado e já está publicado.`,
+      `/forum/topico/${created._id}`
+    );
+  } else {
+    const comment = await Comment.create({
+      topic: topic._id,
+      author: held.author,
+      authorName: held.authorName,
+      authorRole: held.authorRole || "Estudante",
+      text: held.content,
+    });
+    await createNotification(
+      held.author,
+      "post_approved",
+      `Sua resposta no tópico "${topic.title}" foi aprovada e já está publicada.`,
+      `/forum/topico/${topic._id}#comentario-${comment._id}`
+    );
+    if (String(topic.author) !== String(held.author)) {
+      await createNotification(
+        topic.author,
+        "forum_reply",
+        `${held.authorName} respondeu ao seu tópico "${topic.title}"`,
+        `/forum/topico/${topic._id}`
+      );
+    }
+  }
+  res.redirect("/admin/retidos");
+}));
+
+router.post("/retidos/:id/rejeitar", asyncHandler(async (req, res) => {
+  if (!isObjectIdString(req.params.id)) return res.redirect("/admin/retidos");
+  const held = await FlaggedPost.findOneAndUpdate(
+    { _id: req.params.id, status: "pending" },
+    { status: "rejected", reviewedAt: new Date() }
+  ).lean();
+  if (held) {
+    const isTopic = held.type === "topic";
+    await createNotification(
+      held.author,
+      "post_rejected",
+      isTopic
+        ? `Seu tópico "${held.title}" não foi aprovado pela moderação e não será publicado.`
+        : "Sua resposta não foi aprovada pela moderação e não será publicada.",
+      isTopic || !held.topic ? "/forum" : `/forum/topico/${held.topic}`
+    );
+  }
+  res.redirect("/admin/retidos");
 }));
 
 // ─── MODERAR SUGESTÕES ─────────────────────────────────────────────────────
@@ -538,6 +660,7 @@ router.post("/users/:id/excluir", asyncHandler(async (req, res) => {
   // contando para quem não existe mais.
   await Promise.all([
     Notification.deleteMany({ recipient: user._id }),
+    FlaggedPost.deleteMany({ author: user._id }),
     Suggestion.updateMany({ "votes.user": user._id }, { $pull: { votes: { user: user._id } } }),
   ]);
 

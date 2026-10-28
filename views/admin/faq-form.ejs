@@ -8,7 +8,7 @@
   </div>
 </div>
 
-<% if (errors.question || errors.answer || errors.category) { %>
+<% if (errors.question || errors.answer || errors.category || errors.details) { %>
   <div class="auth-error" tabindex="-1" data-autofocus-error><%- icon('alertCircle', 16) %>Corrija os campos indicados abaixo e salve novamente.</div>
 <% } %>
 
@@ -36,7 +36,15 @@
     <label for="faq-answer">Resposta</label>
     <textarea class="input <%= errors.answer ? 'error' : '' %>" id="faq-answer" name="answer" rows="6" placeholder="Digite a resposta" required
       <%- errors.answer ? 'aria-invalid="true" aria-describedby="faq-answer-error"' : '' %>><%= faq ? faq.answer : '' %></textarea>
+    <p class="field-hint">Mantenha a resposta curta. Textos longos vão no campo abaixo.</p>
     <% if (errors.answer) { %><p class="field-error" id="faq-answer-error"><%- icon('alertCircle', 12) %><%= errors.answer %></p><% } %>
+  </div>
+  <div class="field">
+    <label for="faq-details">Resposta completa <span class="text-gray-500">(opcional)</span></label>
+    <textarea class="input <%= errors.details ? 'error' : '' %>" id="faq-details" name="details" rows="10" maxlength="10000" placeholder="Preencha só nos casos que precisam de uma página própria. Deixe uma linha em branco para separar parágrafos."
+      <%- errors.details ? 'aria-invalid="true" aria-describedby="faq-details-error"' : '' %>><%= faq && faq.details ? faq.details : '' %></textarea>
+    <p class="field-hint">Se preenchida, a pergunta ganha uma página própria e a resposta curta passa a ter o link “Ler resposta completa”.</p>
+    <% if (errors.details) { %><p class="field-error" id="faq-details-error"><%- icon('alertCircle', 12) %><%= errors.details %></p><% } %>
   </div>
   <div class="flex gap-3">
     <button type="submit" class="btn btn-primary"><%- icon('check', 16) %>Salvar</button>

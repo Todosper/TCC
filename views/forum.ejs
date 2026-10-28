@@ -24,6 +24,9 @@
   <% if (typeof removed !== 'undefined' && removed) { %>
     <div class="auth-success" role="status"><%- icon('checkCircle2', 16) %>Tópico excluído.</div>
   <% } %>
+  <% if (typeof analysis !== 'undefined' && analysis) { %>
+    <div class="auth-success" role="status"><%- icon('checkCircle2', 16) %>Seu tópico foi enviado para análise da moderação e será publicado se for aprovado.</div>
+  <% } %>
 
   <nav class="cat-filter-grid" aria-label="Filtrar por categoria">
     <% categories.forEach(function(c) { %>

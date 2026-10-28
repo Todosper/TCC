@@ -120,6 +120,12 @@ function getAdminAuth() {
   return adminAuth;
 }
 
+// Troca o e-mail da conta no Firebase (Admin SDK). Só é usado depois de o
+// Google ter confirmado que a pessoa é dona do novo e-mail.
+async function updateUserEmail(uid, email) {
+  await getAdminAuth().updateUser(uid, { email, emailVerified: true });
+}
+
 // Apaga a conta no Firebase. Se ela já não existir lá, considera sucesso.
 async function deleteUser(uid) {
   try {
@@ -136,6 +142,7 @@ module.exports = {
   isInvalidCredentials,
   isAdminConfigured,
   deleteUser,
+  updateUserEmail,
   signUp,
   signIn,
   isEmailVerified,
