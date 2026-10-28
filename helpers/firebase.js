@@ -113,10 +113,12 @@ function isAdminConfigured() {
 
 function getAdminAuth() {
   if (adminAuth) return adminAuth;
-  const admin = require("firebase-admin");
+  // API modular do Admin SDK (as versões novas não têm mais `admin.apps`).
+  const { getApps, getApp, initializeApp, cert } = require("firebase-admin/app");
+  const { getAuth } = require("firebase-admin/auth");
   const credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-  const app = admin.apps.length ? admin.app() : admin.initializeApp({ credential: admin.credential.cert(credentials) });
-  adminAuth = app.auth();
+  const app = getApps().length ? getApp() : initializeApp({ credential: cert(credentials) });
+  adminAuth = getAuth(app);
   return adminAuth;
 }
 
