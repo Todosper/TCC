@@ -4,17 +4,6 @@ Sistema web de fórum de discussões, perguntas frequentes (FAQ) e sugestões pa
 
 **Tecnologias:** Node.js, Express 4, EJS, MongoDB (Mongoose), Firebase Authentication (e-mail de confirmação e redefinição de senha).
 
-## Como rodar
-
-```bash
-npm install
-cp .env.example .env     # preencha os valores (veja os comentários do arquivo)
-npm run seed             # opcional: dados de exemplo (apaga os dados existentes)
-npm start
-```
-
-O site abre em `http://localhost:3000`. O `seed` não roda com `NODE_ENV=production`.
-
 ## Variáveis de ambiente
 
 Todas estão descritas em `.env.example`. As principais: `MONGODB_URI`, `SESSION_SECRET`, `FIREBASE_API_KEY`, `FIREBASE_SERVICE_ACCOUNT`, `ALLOWED_EMAIL_DOMAINS` e, para o login com o Google, `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`.
