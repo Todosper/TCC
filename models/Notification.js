@@ -17,4 +17,10 @@ const notificationSchema = new mongoose.Schema(
 
 notificationSchema.index({ recipient: 1, read: 1, createdAt: -1 });
 
+// Índice TTL: o próprio MongoDB apaga as notificações com mais de 30 dias (lidas
+// ou não), para a coleção não crescer sem parar. A limpeza roda em segundo plano
+// a cada ~60 segundos, sem nenhum código no servidor.
+const NOTIFICATION_TTL_SECONDS = 30 * 24 * 60 * 60;
+notificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: NOTIFICATION_TTL_SECONDS });
+
 module.exports = mongoose.model("Notification", notificationSchema);

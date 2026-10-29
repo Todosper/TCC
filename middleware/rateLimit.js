@@ -38,6 +38,22 @@ const forgotLimiter = rateLimit({
   },
 });
 
+// Reenvio do e-mail de confirmação (botão na tela de login): envia e-mail e exige
+// a senha, então tem limite próprio, contando todos os pedidos.
+const resendLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).render("login", {
+      title: "Entrar",
+      error: "Muitos pedidos de reenvio. Aguarde alguns minutos e tente novamente.",
+      form: { next: typeof req.body?.next === "string" ? req.body.next : "" },
+    });
+  },
+});
+
 // Criação de contas por IP, para dificultar cadastros em massa por scripts.
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -71,4 +87,4 @@ const contentLimiter = rateLimit({
   },
 });
 
-module.exports = { loginLimiter, forgotLimiter, registerLimiter, contentLimiter };
+module.exports = { loginLimiter, forgotLimiter, resendLimiter, registerLimiter, contentLimiter };

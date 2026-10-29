@@ -11,7 +11,11 @@ const Suggestion = require("../models/Suggestion");
 const Notification = require("../models/Notification");
 const Report = require("../models/Report");
 const FlaggedPost = require("../models/FlaggedPost");
-const { createNotification } = require("../helpers/notifications");
+const TopicFollow = require("../models/TopicFollow");
+const ModerationLog = require("../models/ModerationLog");
+const { createNotification, notifyTopicFollowers } = require("../helpers/notifications");
+const { logModeration, excerpt } = require("../helpers/moderationLog");
+const { commentUrl } = require("../helpers/commentPages");
 const { buildSearchRegex } = require("../helpers/search");
 const { asString, isObjectIdString, paginate } = require("../helpers/query");
 const { deleteTopicCascade, deleteCommentCascade } = require("../helpers/forumCleanup");
@@ -123,6 +127,7 @@ router.post("/faq/novo", asyncHandler(async (req, res) => {
     return res.status(400).render("admin/faq-form", { title: "Nova Pergunta", tab: "faq", categories, faq: values, errors });
   }
   await Faq.create(values);
+  await logModeration(req, "faq", `criou a pergunta do FAQ "${excerpt(values.question)}"`);
   res.redirect("/admin/faq");
 }));
 
@@ -147,12 +152,16 @@ router.post("/faq/:id/editar", asyncHandler(async (req, res) => {
     });
   }
 
-  await Faq.findByIdAndUpdate(req.params.id, values);
+  const updated = await Faq.findByIdAndUpdate(req.params.id, values);
+  if (updated) await logModeration(req, "faq", `editou a pergunta do FAQ "${excerpt(values.question)}"`);
   res.redirect("/admin/faq");
 }));
 
 router.post("/faq/:id/excluir", asyncHandler(async (req, res) => {
-  if (isObjectIdString(req.params.id)) await Faq.findByIdAndDelete(req.params.id);
+  if (isObjectIdString(req.params.id)) {
+    const removed = await Faq.findByIdAndDelete(req.params.id);
+    if (removed) await logModeration(req, "faq", `excluiu a pergunta do FAQ "${excerpt(removed.question)}"`);
+  }
   res.redirect("/admin/faq");
 }));
 
@@ -193,6 +202,7 @@ router.post("/faq-categorias", asyncHandler(async (req, res) => {
   if (Object.keys(errors).length > 0) return renderFaqCategories(res, { errors, form, status: 400 });
 
   await FaqCategory.create({ name, cls, icon });
+  await logModeration(req, "faq", `criou a categoria do FAQ "${name}"`);
   res.redirect("/admin/faq-categorias?ok=created");
 }));
 
@@ -206,7 +216,8 @@ router.post("/faq-categorias/:id/excluir", asyncHandler(async (req, res) => {
       status: 409,
     });
   }
-  await FaqCategory.findByIdAndDelete(req.params.id);
+  const removedCategory = await FaqCategory.findByIdAndDelete(req.params.id);
+  if (removedCategory) await logModeration(req, "faq", `excluiu a categoria do FAQ "${removedCategory.name}"`);
   res.redirect("/admin/faq-categorias?ok=deleted");
 }));
 
@@ -232,13 +243,18 @@ router.post("/forum/:id/toggle-lock", asyncHandler(async (req, res) => {
     if (topic) {
       topic.locked = !topic.locked;
       await topic.save();
+      await logModeration(req, "forum", `${topic.locked ? "encerrou" : "reabriu"} o tópico "${excerpt(topic.title)}"`);
     }
   }
   res.redirect("/admin/forum");
 }));
 
 router.post("/forum/:id/excluir", asyncHandler(async (req, res) => {
-  if (isObjectIdString(req.params.id)) await deleteTopicCascade(req.params.id);
+  if (isObjectIdString(req.params.id)) {
+    const topic = await Topic.findById(req.params.id).select("title authorName").lean();
+    await deleteTopicCascade(req.params.id);
+    if (topic) await logModeration(req, "forum", `excluiu o tópico "${excerpt(topic.title)}" de ${topic.authorName}`);
+  }
   res.redirect("/admin/forum");
 }));
 
@@ -248,7 +264,11 @@ router.post("/forum/comentario/:id/excluir", asyncHandler(async (req, res) => {
   const topicIdFromForm = asString(req.body.topicId);
   if (!isObjectIdString(req.params.id)) return res.redirect("/admin/forum");
   const comment = await Comment.findById(req.params.id).lean();
-  if (comment) await deleteCommentCascade(comment);
+  if (comment) {
+    const topic = await Topic.findById(comment.topic).select("title").lean();
+    await deleteCommentCascade(comment);
+    await logModeration(req, "forum", `excluiu a resposta de ${comment.authorName} ("${excerpt(comment.text)}") no tópico "${excerpt(topic ? topic.title : "(removido)")}"`);
+  }
   const topicId = comment ? comment.topic : topicIdFromForm;
   res.redirect(isObjectIdString(String(topicId)) ? `/forum/topico/${topicId}` : "/admin/forum");
 }));
@@ -286,7 +306,12 @@ router.post("/denuncias/:id/status", asyncHandler(async (req, res) => {
   const validStatuses = ["reviewed", "dismissed"];
   const status = asString(req.body.status);
   if (isObjectIdString(req.params.id) && validStatuses.includes(status)) {
-    await Report.findByIdAndUpdate(req.params.id, { status });
+    const report = await Report.findByIdAndUpdate(req.params.id, { status }).lean();
+    if (report) {
+      const topic = await Topic.findById(report.topic).select("title").lean();
+      const what = report.targetType === "comment" ? "uma resposta" : "o tópico";
+      await logModeration(req, "reports", `marcou como ${status === "reviewed" ? "analisada" : "descartada"} uma denúncia sobre ${what} do tópico "${excerpt(topic ? topic.title : "(removido)")}"`);
+    }
   }
   res.redirect("/admin/denuncias");
 }));
@@ -299,10 +324,17 @@ router.post("/denuncias/:id/excluir-conteudo", asyncHandler(async (req, res) => 
   if (report) {
     if (report.targetType === "comment" && report.comment) {
       const comment = await Comment.findById(report.comment).lean();
-      if (comment) await deleteCommentCascade(comment);
-      else await Report.deleteMany({ comment: report.comment });
+      if (comment) {
+        const topic = await Topic.findById(comment.topic).select("title").lean();
+        await deleteCommentCascade(comment);
+        await logModeration(req, "reports", `excluiu a resposta de ${comment.authorName} ("${excerpt(comment.text)}") no tópico "${excerpt(topic ? topic.title : "(removido)")}" a partir de uma denúncia`);
+      } else {
+        await Report.deleteMany({ comment: report.comment });
+      }
     } else {
+      const topic = await Topic.findById(report.topic).select("title authorName").lean();
       await deleteTopicCascade(report.topic);
+      if (topic) await logModeration(req, "reports", `excluiu o tópico "${excerpt(topic.title)}" de ${topic.authorName} a partir de uma denúncia`);
     }
   }
   res.redirect("/admin/denuncias");
@@ -362,6 +394,10 @@ router.post("/retidos/:id/aprovar", asyncHandler(async (req, res) => {
   );
   if (!claimed) return res.redirect("/admin/retidos");
 
+  await logModeration(req, "held", held.type === "topic"
+    ? `aprovou o tópico em análise "${excerpt(held.title)}" de ${held.authorName}`
+    : `aprovou a resposta em análise de ${held.authorName} no tópico "${excerpt(topic.title)}"`);
+
   if (held.type === "topic") {
     const created = await Topic.create({
       title: held.title,
@@ -389,7 +425,7 @@ router.post("/retidos/:id/aprovar", asyncHandler(async (req, res) => {
       held.author,
       "post_approved",
       `Sua resposta no tópico "${topic.title}" foi aprovada e já está publicada.`,
-      `/forum/topico/${topic._id}#comentario-${comment._id}`
+      await commentUrl(comment)
     );
     if (String(topic.author) !== String(held.author)) {
       await createNotification(
@@ -399,6 +435,8 @@ router.post("/retidos/:id/aprovar", asyncHandler(async (req, res) => {
         `/forum/topico/${topic._id}`
       );
     }
+    // Quem segue o tópico também é avisado agora que a resposta foi publicada.
+    await notifyTopicFollowers(topic, held.author, held.authorName);
   }
   res.redirect("/admin/retidos");
 }));
@@ -411,6 +449,10 @@ router.post("/retidos/:id/rejeitar", asyncHandler(async (req, res) => {
   ).lean();
   if (held) {
     const isTopic = held.type === "topic";
+    const heldTopic = isTopic || !held.topic ? null : await Topic.findById(held.topic).select("title").lean();
+    await logModeration(req, "held", isTopic
+      ? `rejeitou o tópico em análise "${excerpt(held.title)}" de ${held.authorName}`
+      : `rejeitou a resposta em análise de ${held.authorName}${heldTopic ? ` no tópico "${excerpt(heldTopic.title)}"` : ""}`);
     await createNotification(
       held.author,
       "post_rejected",
@@ -472,6 +514,7 @@ router.post("/sugestoes/:id/aprovar", asyncHandler(async (req, res) => {
     moderationStatus: "approved", publishedAt: new Date(), rejectionReason: "",
   });
   if (suggestion) {
+    await logModeration(req, "suggestions", `aprovou a sugestão "${excerpt(suggestion.title)}"`);
     await createNotification(
       suggestion.author,
       "suggestion_approved",
@@ -488,6 +531,7 @@ router.post("/sugestoes/:id/rejeitar", asyncHandler(async (req, res) => {
   const suggestion = await Suggestion.findById(req.params.id);
   await Suggestion.findByIdAndUpdate(req.params.id, { moderationStatus: "rejected", rejectionReason: reason });
   if (suggestion) {
+    await logModeration(req, "suggestions", `rejeitou a sugestão "${excerpt(suggestion.title)}"${reason ? ` (motivo: ${excerpt(reason, 120)})` : ""}`);
     const reasonText = reason ? ` Motivo: ${reason}` : "";
     await createNotification(
       suggestion.author,
@@ -521,6 +565,7 @@ router.post("/sugestoes/:id/status", asyncHandler(async (req, res) => {
     statusReason: status === "not_implemented" ? statusReason : "",
   });
   const statusLabels = { analysis: "em análise", planned: "planejada", implemented: "implementada", not_implemented: "não implementada" };
+  await logModeration(req, "suggestions", `alterou o status da sugestão "${excerpt(suggestion.title)}" para "${statusLabels[status]}"`);
   await createNotification(
     suggestion.author,
     "suggestion_status",
@@ -531,8 +576,31 @@ router.post("/sugestoes/:id/status", asyncHandler(async (req, res) => {
 }));
 
 router.post("/sugestoes/:id/excluir", asyncHandler(async (req, res) => {
-  if (isObjectIdString(req.params.id)) await Suggestion.findByIdAndDelete(req.params.id);
+  if (isObjectIdString(req.params.id)) {
+    const removed = await Suggestion.findByIdAndDelete(req.params.id);
+    if (removed) await logModeration(req, "suggestions", `excluiu a sugestão "${excerpt(removed.title)}" de ${removed.authorName}`);
+  }
   res.redirect("/admin/sugestoes");
+}));
+
+// ─── HISTÓRICO DE MODERAÇÃO ─────────────────────────────────────────────────
+// Quem fez o quê no painel (exclusões, aprovações, bloqueios...), do mais recente
+// para o mais antigo. Os registros são criados por logModeration() nas rotas acima.
+router.get("/historico", asyncHandler(async (req, res) => {
+  const category = ModerationLog.CATEGORIES.includes(asString(req.query.categoria)) ? asString(req.query.categoria) : "all";
+  const filter = category === "all" ? {} : { category };
+
+  const { items: logs, total, totalPages, page: safePage } = await paginate({
+    page: req.query.page,
+    pageSize: PAGE_SIZE,
+    count: () => ModerationLog.countDocuments(filter),
+    find: (skip, limit) => ModerationLog.find(filter).sort({ createdAt: -1, _id: -1 }).skip(skip).limit(limit).lean(),
+  });
+
+  res.render("admin/moderation-log", {
+    title: "Histórico de moderação", tab: "log", logs, total, category,
+    page: safePage, totalPages, baseQuery: category === "all" ? "" : `categoria=${category}`, basePath: "/admin/historico",
+  });
 }));
 
 // ─── USUÁRIOS ───────────────────────────────────────────────────────────────
@@ -581,6 +649,7 @@ router.post("/users/:id/toggle-status", asyncHandler(async (req, res) => {
     await user.save();
     // Aplica o bloqueio/desbloqueio na hora, sem esperar o cache de conta expirar.
     invalidateUserCache(user._id);
+    await logModeration(req, "users", `${user.status === "bloqueado" ? "bloqueou" : "desbloqueou"} o usuário ${user.name}`);
   }
   res.redirect("/admin/users");
 }));
@@ -594,6 +663,7 @@ router.post("/users/:id/role", asyncHandler(async (req, res) => {
     user.role = role;
     await user.save();
     invalidateUserCache(user._id);
+    await logModeration(req, "users", `alterou o perfil de ${user.name} para ${role}`);
   }
   res.redirect("/admin/users");
 }));
@@ -611,6 +681,7 @@ router.post("/users/:id/toggle-admin", asyncHandler(async (req, res) => {
     user.isAdmin = !user.isAdmin;
     await user.save();
     invalidateUserCache(user._id);
+    await logModeration(req, "users", `${user.isAdmin ? "concedeu" : "removeu"} a permissão de administrador ${user.isAdmin ? "a" : "de"} ${user.name}`);
   }
   res.redirect("/admin/users");
 }));
@@ -660,6 +731,7 @@ router.post("/users/:id/excluir", asyncHandler(async (req, res) => {
   // contando para quem não existe mais.
   await Promise.all([
     Notification.deleteMany({ recipient: user._id }),
+    TopicFollow.deleteMany({ user: user._id }),
     FlaggedPost.deleteMany({ author: user._id }),
     Suggestion.updateMany({ "votes.user": user._id }, { $pull: { votes: { user: user._id } } }),
   ]);
@@ -667,6 +739,7 @@ router.post("/users/:id/excluir", asyncHandler(async (req, res) => {
   // Por fim, remove os dados de identificação e acesso: nome, e-mail e senha.
   await User.findByIdAndDelete(user._id);
   invalidateUserCache(user._id);
+  await logModeration(req, "users", `excluiu a conta do usuário ${user.name}`);
 
   res.redirect("/admin/users");
 }));

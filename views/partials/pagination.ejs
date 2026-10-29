@@ -4,18 +4,20 @@
     - totalPages: total de páginas
     - baseQuery: query string já montada, sem "page" (ex.: "cat=duvidas&q=prova"); pode ser ""
     - basePath: caminho da rota (ex.: "/forum" ou "/admin/users")
+    - anchor (opcional): id do trecho da página para onde os links levam (ex.: "comentarios")
 %>
 <% if (totalPages > 1) { %>
   <nav class="pagination" aria-label="Paginação">
     <% var sep = baseQuery ? baseQuery + '&' : ''; %>
+    <% var hash = (typeof anchor !== 'undefined' && anchor) ? '#' + anchor : ''; %>
     <% if (page > 1) { %>
-      <a href="<%= basePath %>?<%= sep %>page=<%= page - 1 %>" class="btn btn-outline btn-sm" rel="prev"><span aria-hidden="true">←</span> Anterior</a>
+      <a href="<%= basePath %>?<%= sep %>page=<%= page - 1 %><%= hash %>" class="btn btn-outline btn-sm" rel="prev"><span aria-hidden="true">←</span> Anterior</a>
     <% } else { %>
       <span class="btn btn-outline btn-sm pagination-disabled" aria-disabled="true"><span aria-hidden="true">←</span> Anterior</span>
     <% } %>
     <span class="pagination-info" aria-current="page">Página <%= page %> de <%= totalPages %></span>
     <% if (page < totalPages) { %>
-      <a href="<%= basePath %>?<%= sep %>page=<%= page + 1 %>" class="btn btn-outline btn-sm" rel="next">Próxima <span aria-hidden="true">→</span></a>
+      <a href="<%= basePath %>?<%= sep %>page=<%= page + 1 %><%= hash %>" class="btn btn-outline btn-sm" rel="next">Próxima <span aria-hidden="true">→</span></a>
     <% } else { %>
       <span class="btn btn-outline btn-sm pagination-disabled" aria-disabled="true">Próxima <span aria-hidden="true">→</span></span>
     <% } %>

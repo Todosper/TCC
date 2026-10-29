@@ -1,0 +1,46 @@
+<%- include('../partials/admin-header') %>
+<%
+  var logTabs = [
+    { id: 'all', label: 'Tudo' }, { id: 'forum', label: 'Fórum' }, { id: 'reports', label: 'Denúncias' },
+    { id: 'held', label: 'Em análise' }, { id: 'suggestions', label: 'Sugestões' },
+    { id: 'faq', label: 'FAQ' }, { id: 'users', label: 'Usuários' }
+  ];
+  var logLabels = {};
+  logTabs.forEach(function (t) { logLabels[t.id] = t.label; });
+%>
+<div class="admin-table-toolbar">
+  <h2>Histórico de moderação (<%= total %>)</h2>
+  <nav class="tabs" aria-label="Filtrar histórico por área">
+    <% logTabs.forEach(function (t) { %>
+      <a class="tab-btn <%= category === t.id ? 'active' : '' %>" href="/admin/historico<%= t.id === 'all' ? '' : '?categoria=' + t.id %>"<%- category === t.id ? ' aria-current="page"' : '' %>><%= t.label %></a>
+    <% }) %>
+  </nav>
+</div>
+
+<div class="admin-table-wrap">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Ação</th>
+        <th class="sm-table-cell">Área</th>
+        <th>Quando</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (logs.length === 0) { %>
+        <tr><td colspan="3"><span class="text-xs text-gray-500">Nenhuma ação registrada<%= category === 'all' ? '' : ' nesta área' %> até agora.</span></td></tr>
+      <% } %>
+      <% logs.forEach(function (l) { %>
+        <tr>
+          <td><strong><%= l.adminName %></strong> <%= l.description %></td>
+          <td class="sm-table-cell"><span class="badge badge-gray badge-inline"><%= logLabels[l.category] || l.category %></span></td>
+          <td><span class="text-xs text-gray-500"><%= fmtDateTime(l.createdAt) %></span></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<%- include('../partials/pagination') %>
+
+<%- include('../partials/admin-footer') %>

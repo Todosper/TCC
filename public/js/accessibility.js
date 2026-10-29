@@ -9,7 +9,7 @@
   var KEY_SIZE = "a11y-font-size";
   var KEY_CONTRAST = "a11y-contrast";
   var KEY_LINKS = "a11y-links";
-  // Botão do VLibras: visível por padrão. Só é gravado quando a pessoa o esconde ("0").
+  // Botão do VLibras: escondido por padrão. Só é gravado quando a pessoa o ativa ("1").
   var KEY_LIBRAS = "a11y-libras-visible";
   var SIZE_MIN = 80, SIZE_MAX = 150, SIZE_STEP = 10, SIZE_DEFAULT = 100;
 
@@ -147,7 +147,7 @@
     // ── Botão de Libras (VLibras) ──────────────────────────────────────
     // O interruptor mostra ou esconde o botão flutuante do VLibras; ele não
     // abre nem fecha a tradução. O widget em si é carregado por layout.ejs
-    // (window.loadVLibras) e só é baixado enquanto o botão estiver visível.
+    // (window.loadVLibras) e só é baixado depois que a pessoa ativa o botão.
     function librasVisible() { return !root.classList.contains("a11y-libras-hidden"); }
     function showLibrasMsg(show) { if (librasMsg) librasMsg.hidden = !show; }
     function renderLibras() {
@@ -155,7 +155,7 @@
     }
     function setLibras(visible) {
       root.classList.toggle("a11y-libras-hidden", !visible);
-      write(KEY_LIBRAS, visible ? null : "0");
+      write(KEY_LIBRAS, visible ? "1" : null);
       showLibrasMsg(false);
       if (visible && typeof window.loadVLibras === "function") window.loadVLibras();
       renderLibras();
@@ -174,7 +174,7 @@
       root.classList.toggle("dark", systemPrefersDark());
       try { localStorage.removeItem("theme"); } catch (e) { /* sem armazenamento: nada a limpar */ }
       syncTheme();
-      setLibras(true);
+      setLibras(false);
     });
   });
 })();

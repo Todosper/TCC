@@ -51,9 +51,17 @@
       </div>
       <p class="topic-content-text"><%= topic.content %></p>
       <div class="topic-footer-row">
-        <span class="with-icon"><%- icon('messageSquare', 14) %><%= comments.length %> <%= plural(comments.length, 'resposta', 'respostas') %></span>
+        <span class="with-icon"><%- icon('messageSquare', 14) %><%= totalComments %> <%= plural(totalComments, 'resposta', 'respostas') %></span>
         <span><%= topic.views || 0 %> <%= plural(topic.views || 0, 'visualização', 'visualizações') %></span>
         <% if (loggedIn && !isOwner) { %>
+          <form method="POST" action="/forum/topico/<%= topic._id %>/seguir" class="inline-form">
+            <%- include('partials/csrf-field') %>
+            <% if (page > 1) { %><input type="hidden" name="page" value="<%= page %>"><% } %>
+            <button type="submit" class="btn btn-outline btn-sm" aria-pressed="<%= isFollowing ? 'true' : 'false' %>"
+              title="<%= isFollowing ? 'Deixar de seguir este tópico' : 'Receber uma notificação quando alguém responder' %>">
+              <%- icon('bell', 14) %><%= isFollowing ? 'Seguindo' : 'Seguir tópico' %>
+            </button>
+          </form>
           <button type="button" class="btn btn-outline btn-sm" data-toggle-target="report-topic-form" aria-controls="report-topic-form">
             <%- icon('flag', 14) %>Denunciar tópico
           </button>
@@ -85,9 +93,9 @@
     </div>
   </article>
 
-  <div class="comments-header">
+  <div class="comments-header" id="comentarios">
     <%- icon('messageSquare', 16) %>
-    <h2><%= comments.length %> <%= plural(comments.length, 'Resposta', 'Respostas') %></h2>
+    <h2><%= totalComments %> <%= plural(totalComments, 'Resposta', 'Respostas') %></h2>
   </div>
 
   <div class="comments-list">
@@ -150,6 +158,8 @@
       </article>
     <% }) %>
   </div>
+
+  <%- include('partials/pagination', { anchor: 'comentarios' }) %>
 
   <% if (!topic.locked) { %>
     <% if (loggedIn) { %>

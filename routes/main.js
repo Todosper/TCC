@@ -10,11 +10,13 @@ const FaqCategory = require("../models/FaqCategory");
 const User = require("../models/User");
 const Suggestion = require("../models/Suggestion");
 const Report = require("../models/Report");
+const TopicFollow = require("../models/TopicFollow");
 const FlaggedPost = require("../models/FlaggedPost");
 const { CATEGORIES } = require("../models/categories");
-const { createNotification } = require("../helpers/notifications");
+const { createNotification, notifyTopicFollowers } = require("../helpers/notifications");
 const { buildSearchRegex } = require("../helpers/search");
-const { asString, isObjectIdString, paginate } = require("../helpers/query");
+const { asString, isObjectIdString, paginate, parsePage } = require("../helpers/query");
+const { LAST_PAGE, loadCommentsPage, commentUrl } = require("../helpers/commentPages");
 const { authorRoleLabel } = require("../helpers/roles");
 const { wantsJson } = require("../helpers/http");
 const { moderateFields } = require("../helpers/moderation");
@@ -22,6 +24,8 @@ const { deleteTopicCascade, deleteCommentCascade } = require("../helpers/forumCl
 const { contentLimiter } = require("../middleware/rateLimit");
 
 const PAGE_SIZE = 20; // tópicos por página no fórum
+const FAQ_PAGE_SIZE = 10; // perguntas por página no FAQ
+const SUGGESTIONS_PAGE_SIZE = 10; // sugestões por página
 
 const TOPIC_TITLE_MAX = 120;
 const TOPIC_BODY_MAX = 5000;
@@ -231,17 +235,31 @@ const TOPIC_NOTICES = {
   created: "Tópico publicado!",
   removed: "Sua resposta foi excluída.",
   analise: "Sua resposta foi enviada para análise da moderação e será publicada se for aprovada.",
+  followed: "Você vai receber uma notificação quando alguém responder a este tópico.",
+  unfollowed: "Você deixou de seguir este tópico.",
 };
 
-// Monta a página do tópico. `comments` pode vir já carregado (rota GET).
-async function renderTopicPage(req, res, topic, { comments, replyError = null, replyText = "", actionError = null, status = 200 } = {}) {
-  const loaded = comments || (await Comment.find({ topic: topic._id }).sort({ createdAt: 1 }).lean());
-  const withRoles = await withCurrentRoles(loaded);
+// Monta a página do tópico. `commentsPage` (resultado de loadCommentsPage) pode
+// vir já carregado (rota GET); sem ele, mostra a última página de respostas,
+// onde fica o formulário de resposta.
+async function renderTopicPage(req, res, topic, { commentsPage, replyError = null, replyText = "", actionError = null, status = 200 } = {}) {
+  const me = req.session.user;
+  const [loaded, followRow] = await Promise.all([
+    commentsPage || loadCommentsPage(topic._id, LAST_PAGE),
+    me ? TopicFollow.exists({ user: me.id, topic: topic._id }) : null,
+  ]);
+  const withRoles = await withCurrentRoles(loaded.items);
   const noticeKey = Object.keys(TOPIC_NOTICES).find((k) => req.query[k] === "1");
   res.status(status).render("topic-detail", {
     title: topic.title,
     topic,
     comments: withRoles,
+    totalComments: loaded.total,
+    page: loaded.page,
+    totalPages: loaded.totalPages,
+    baseQuery: "",
+    basePath: `/forum/topico/${topic._id}`,
+    isFollowing: !!followRow,
     solvedCommentId: topic.solvedComment ? String(topic.solvedComment) : null,
     replyError,
     replyText,
@@ -253,10 +271,10 @@ async function renderTopicPage(req, res, topic, { comments, replyError = null, r
 router.get("/forum/topico/:id", asyncHandler(async (req, res) => {
   if (!isObjectIdString(req.params.id)) return notFound(res);
 
-  // O tópico e os comentários não dependem um do outro: buscados em paralelo.
-  const [topic, comments] = await Promise.all([
+  // O tópico e a página de respostas não dependem um do outro: buscados em paralelo.
+  const [topic, commentsPage] = await Promise.all([
     Topic.findById(req.params.id).lean(),
-    Comment.find({ topic: req.params.id }).sort({ createdAt: 1 }).lean(),
+    loadCommentsPage(req.params.id, req.query.page),
   ]);
   if (!topic) return notFound(res);
 
@@ -278,7 +296,7 @@ router.get("/forum/topico/:id", asyncHandler(async (req, res) => {
     });
   }
 
-  await renderTopicPage(req, res, topic, { comments });
+  await renderTopicPage(req, res, topic, { commentsPage });
 }));
 
 router.post("/forum/topico/:id/responder", requireAuth, contentLimiter, asyncHandler(async (req, res) => {
@@ -331,8 +349,10 @@ router.post("/forum/topico/:id/responder", requireAuth, contentLimiter, asyncHan
       `/forum/topico/${topic._id}`
     );
   }
+  // Quem segue o tópico também é avisado (também sem await).
+  notifyTopicFollowers(topic, req.session.user.id, req.session.user.name);
 
-  res.redirect(`/forum/topico/${topic._id}?submitted=1#comentario-${comment._id}`);
+  res.redirect(await commentUrl(comment, "submitted=1"));
 }));
 
 // ─── Resposta que resolveu a dúvida ─────────────────────────────────────────
@@ -366,7 +386,35 @@ router.post("/forum/topico/:id/solucao", requireAuth, asyncHandler(async (req, r
     }
   }
   await topic.save();
-  res.redirect(`/forum/topico/${topic._id}#comentario-${commentId}`);
+  res.redirect(await commentUrl(comment));
+}));
+
+// ─── Seguir / deixar de seguir um tópico ────────────────────────────────────
+// Quem segue recebe uma notificação a cada nova resposta. O autor do tópico já é
+// avisado sempre, então não precisa seguir o próprio tópico. Chamar de novo
+// desfaz o "seguir".
+router.post("/forum/topico/:id/seguir", requireAuth, asyncHandler(async (req, res) => {
+  if (!isObjectIdString(req.params.id)) return notFound(res);
+  const topic = await Topic.findById(req.params.id).select("author").lean();
+  if (!topic) return notFound(res);
+
+  const page = parsePage(asString(req.body.page));
+  const back = `/forum/topico/${topic._id}`;
+  const goBack = (notice) => res.redirect(`${back}?${page > 1 ? `page=${page}&` : ""}${notice}=1`);
+
+  if (String(topic.author) === String(req.session.user.id)) return res.redirect(back);
+
+  const key = { user: req.session.user.id, topic: topic._id };
+  const removed = await TopicFollow.deleteOne(key);
+  if (removed.deletedCount > 0) return goBack("unfollowed");
+
+  try {
+    await TopicFollow.updateOne(key, { $setOnInsert: key }, { upsert: true });
+  } catch (err) {
+    // 11000 = dois cliques simultâneos: o outro já registrou, resultado igual.
+    if (!err || err.code !== 11000) throw err;
+  }
+  goBack("followed");
 }));
 
 // ─── Excluir o próprio conteúdo ─────────────────────────────────────────────
@@ -436,17 +484,23 @@ router.post("/forum/topico/:id/denunciar", requireAuth, contentLimiter, asyncHan
     comment: comment ? comment._id : null,
   }).lean();
   if (!alreadyReported) {
-    await Report.create({
-      targetType: comment ? "comment" : "topic",
-      topic: topic._id,
-      comment: comment ? comment._id : null,
-      reporter: req.session.user.id,
-      reason,
-      details: details.trim().slice(0, 500),
-    });
+    try {
+      await Report.create({
+        targetType: comment ? "comment" : "topic",
+        topic: topic._id,
+        comment: comment ? comment._id : null,
+        reporter: req.session.user.id,
+        reason,
+        details: details.trim().slice(0, 500),
+      });
+    } catch (err) {
+      // 11000 = o índice único barrou uma denúncia repetida (cliques
+      // simultâneos): o conteúdo já está na fila, então tratamos como sucesso.
+      if (err && err.code !== 11000) throw err;
+    }
   }
 
-  res.redirect(`${back}?reported=1${comment ? `#comentario-${comment._id}` : ""}`);
+  res.redirect(comment ? await commentUrl(comment, "reported=1") : `${back}?reported=1`);
 }));
 
 // ─── FAQ ────────────────────────────────────────────────────────────────────
@@ -462,22 +516,36 @@ router.get("/faq", asyncHandler(async (req, res) => {
   }
 
   // As três consultas são independentes e rodam em paralelo. A contagem por
-  // categoria é feita pelo próprio banco (agregação).
-  const [categories, faqRows, countRows] = await Promise.all([
+  // categoria é feita pelo próprio banco (agregação) e considera todas as
+  // perguntas, não só as da página atual.
+  const [categories, faqPage, countRows] = await Promise.all([
     FaqCategory.find().lean(),
-    Faq.find(filter).sort({ createdAt: 1, _id: 1 }).select("question answer details").lean(),
+    paginate({
+      page: req.query.page,
+      pageSize: FAQ_PAGE_SIZE,
+      count: () => Faq.countDocuments(filter),
+      find: (skip, limit) => Faq.find(filter).sort({ createdAt: 1, _id: 1 }).skip(skip).limit(limit).select("question answer details").lean(),
+    }),
     Faq.aggregate([{ $group: { _id: "$category", n: { $sum: 1 } } }]),
   ]);
 
   // A lista só precisa saber se existe página própria, não do texto longo.
-  const faqs = faqRows.map(({ details, ...faq }) => ({ ...faq, hasDetails: !!details }));
+  const faqs = faqPage.items.map(({ details, ...faq }) => ({ ...faq, hasDetails: !!details }));
+
+  // Query string dos links de paginação, para preservar a categoria e a busca.
+  const baseQueryParts = [];
+  if (cat) baseQueryParts.push(`cat=${encodeURIComponent(cat)}`);
+  if (q) baseQueryParts.push(`q=${encodeURIComponent(q)}`);
 
   const counts = {};
   countRows.forEach((row) => {
     if (row._id) counts[row._id.toString()] = row.n;
   });
 
-  res.render("faq", { title: "FAQ", faqs, categories, counts, query: q, selCat: cat });
+  res.render("faq", {
+    title: "FAQ", faqs, categories, counts, query: q, selCat: cat,
+    page: faqPage.page, totalPages: faqPage.totalPages, baseQuery: baseQueryParts.join("&"), basePath: "/faq",
+  });
 }));
 
 // Página própria de uma pergunta com resposta completa. Perguntas sem texto
@@ -486,7 +554,14 @@ router.get("/faq/:id", asyncHandler(async (req, res) => {
   if (!isObjectIdString(req.params.id)) return notFound(res);
   const faq = await Faq.findById(req.params.id).populate("category", "name").lean();
   if (!faq) return notFound(res);
-  if (!faq.details) return res.redirect(`/faq#faq-${faq._id}`);
+  if (!faq.details) {
+    // Volta para a lista, na página em que esta pergunta aparece.
+    const before = await Faq.countDocuments({
+      $or: [{ createdAt: { $lt: faq.createdAt } }, { createdAt: faq.createdAt, _id: { $lt: faq._id } }],
+    });
+    const page = Math.floor(before / FAQ_PAGE_SIZE) + 1;
+    return res.redirect(`/faq${page > 1 ? `?page=${page}` : ""}#faq-${faq._id}`);
+  }
 
   res.render("faq-detail", { title: faq.question, faq });
 }));
@@ -499,28 +574,40 @@ router.get("/sugestoes", asyncHandler(async (req, res) => {
   // O total de apoios e "este usuário já apoiou?" são calculados pelo banco, em
   // vez de trazer a lista completa de votos de cada sugestão.
   // (Em $project, `false` seria lido como "excluir o campo"; por isso $literal.)
-  const suggestions = await Suggestion.aggregate([
-    { $match: { moderationStatus: "approved" } },
-    { $sort: { publishedAt: -1, createdAt: -1 } },
-    {
-      $project: {
-        title: 1,
-        description: 1,
-        status: 1,
-        statusReason: 1,
-        isAnonymous: 1,
-        authorName: 1,
-        publishedAt: 1,
-        createdAt: 1,
-        supportCount: { $size: { $ifNull: ["$votes", []] } },
-        hasSupported: userObjectId
-          ? { $in: [userObjectId, { $ifNull: ["$votes.user", []] }] }
-          : { $literal: false },
+  const approved = { moderationStatus: "approved" };
+  const { items: suggestions, totalPages, page } = await paginate({
+    page: req.query.page,
+    pageSize: SUGGESTIONS_PAGE_SIZE,
+    count: () => Suggestion.countDocuments(approved),
+    find: (skip, limit) => Suggestion.aggregate([
+      { $match: approved },
+      // O desempate por _id mantém a ordem estável entre as páginas.
+      { $sort: { publishedAt: -1, createdAt: -1, _id: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          title: 1,
+          description: 1,
+          status: 1,
+          statusReason: 1,
+          isAnonymous: 1,
+          authorName: 1,
+          publishedAt: 1,
+          createdAt: 1,
+          supportCount: { $size: { $ifNull: ["$votes", []] } },
+          hasSupported: userObjectId
+            ? { $in: [userObjectId, { $ifNull: ["$votes.user", []] }] }
+            : { $literal: false },
+        },
       },
-    },
-  ]);
+    ]),
+  });
 
-  res.render("suggestions", { title: "Sugestões para o Campus", suggestions, submitted: req.query.enviada === "1" });
+  res.render("suggestions", {
+    title: "Sugestões para o Campus", suggestions, submitted: req.query.enviada === "1",
+    page, totalPages, baseQuery: "", basePath: "/sugestoes",
+  });
 }));
 
 router.get("/sugestoes/nova", requireAuth, (req, res) => {
@@ -609,7 +696,9 @@ router.post("/sugestoes/:id/apoio", requireAuth, asyncHandler(async (req, res) =
     ]);
     return res.json({ supported, count: row ? row.count : 0 });
   }
-  res.redirect(`/sugestoes#sug-${id}`);
+  // Volta para a página da lista em que o botão estava (campo oculto "page").
+  const page = parsePage(asString(req.body.page));
+  res.redirect(`/sugestoes${page > 1 ? `?page=${page}` : ""}#sug-${id}`);
 }));
 
 module.exports = router;

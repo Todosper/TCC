@@ -6,7 +6,7 @@ const firebase = require("../helpers/firebase");
 const google = require("../helpers/google");
 const accounts = require("../helpers/accounts");
 const { requireAuth } = require("../middleware/auth");
-const { loginLimiter, forgotLimiter, registerLimiter } = require("../middleware/rateLimit");
+const { loginLimiter, forgotLimiter, resendLimiter, registerLimiter } = require("../middleware/rateLimit");
 const asyncHandler = require("../middleware/asyncHandler");
 const { asString } = require("../helpers/query");
 const { safeNext } = require("../helpers/redirect");
@@ -32,8 +32,9 @@ const NAME_MAX = 100;
 // Mostra a tela de login com uma mensagem. O status HTTP importa para o limite
 // de tentativas: respostas com status de erro (>= 400) contam como tentativa
 // falha; respostas 200 não contam (ex.: senha correta, mas e-mail não confirmado).
-function renderLogin(res, error, { email = "", next = "", status = 200 } = {}) {
-  return res.status(status).render("login", { title: "Entrar", error, form: { email, next } });
+// `unverified` mostra, abaixo do botão Entrar, o botão "Reenviar e-mail de confirmação".
+function renderLogin(res, error, { email = "", next = "", status = 200, unverified = false } = {}) {
+  return res.status(status).render("login", { title: "Entrar", error, form: { email, next }, unverified });
 }
 
 function startSession(req, user) {
@@ -123,7 +124,7 @@ router.post("/login", loginLimiter, async (req, res) => {
           ? `Seu e-mail ainda não foi confirmado. Enviamos um novo link para ${user.email} — confira também o spam.`
           : `Seu e-mail ainda não foi confirmado. Já enviamos um link para ${user.email} — confira a caixa de entrada e o spam. Se não encontrar, tente entrar de novo em cerca de ${waitMinutes} min para receber outro.`;
         // Status 200: a senha estava correta, então não conta como tentativa falha.
-        return renderLogin(res, message, { email, next: formNext });
+        return renderLogin(res, message, { email, next: formNext, unverified: true });
       }
 
       // Mantém o MongoDB em sincronia com o Firebase: e-mail verificado e hash
@@ -151,6 +152,64 @@ router.post("/login", loginLimiter, async (req, res) => {
 });
 
 // ─── REGISTER ───────────────────────────────────────────────────────────────
+// Botão "Reenviar e-mail de confirmação" da tela de login. O Firebase só aceita o
+// pedido de quem acabou de entrar com a senha, então o formulário de login
+// (e-mail + senha) é reaproveitado: aqui a senha é conferida, mas nenhuma sessão
+// é aberta. Respeita o mesmo intervalo mínimo do reenvio automático do login.
+router.post("/login/reenviar-confirmacao", resendLimiter, async (req, res) => {
+  const email = normalizeEmail(req.body.loginOrEmail);
+  const password = asString(req.body.password);
+  const next = safeNext(asString(req.body.next));
+  const formNext = next === "/" ? "" : next;
+  const fail = (error, status = 401) => renderLogin(res, error, { email, next: formNext, status });
+  const info = (message) => renderLogin(res, message, { email, next: formNext, unverified: true });
+
+  try {
+    if (!email || !password) return fail("Preencha o e-mail e a senha para receber outro e-mail de confirmação.", 400);
+
+    const user = await User.findOne({ email });
+    // Só contas ligadas ao Firebase têm e-mail para confirmar. A mensagem é a
+    // mesma de senha errada, para não revelar quais e-mails existem.
+    if (!user || !user.firebaseUid) return fail("E-mail ou senha inválidos.");
+    if (!firebase.isConfigured()) return fail("Serviço de autenticação indisponível no momento. Tente mais tarde.", 503);
+
+    let fbSession;
+    try {
+      fbSession = await firebase.signIn(user.firebaseEmail || user.email, password);
+    } catch (err) {
+      if (firebase.isInvalidCredentials(err)) return fail("E-mail ou senha inválidos.");
+      if (err.code === "TOO_MANY_ATTEMPTS_TRY_LATER") return fail("Muitas tentativas. Aguarde alguns minutos e tente novamente.", 429);
+      throw err;
+    }
+
+    if (user.status === "bloqueado") return fail("Sua conta está bloqueada. Contate a administração.", 403);
+
+    if (await firebase.isEmailVerified(fbSession.idToken)) {
+      return renderLogin(res, "Seu e-mail já está confirmado. Pode entrar normalmente.", { email, next: formNext });
+    }
+
+    const last = user.verificationEmailSentAt ? user.verificationEmailSentAt.getTime() : 0;
+    const elapsed = Date.now() - last;
+    if (elapsed <= RESEND_COOLDOWN_MS) {
+      const waitMinutes = Math.max(1, Math.ceil((RESEND_COOLDOWN_MS - elapsed) / 60000));
+      return info(`Já enviamos um link para ${user.email} há pouco. Confira a caixa de entrada e o spam; se não encontrar, peça outro em cerca de ${waitMinutes} min.`);
+    }
+
+    try {
+      await firebase.sendVerificationEmail(fbSession.idToken);
+    } catch (err) {
+      console.error("Falha ao reenviar e-mail de verificação:", err.message);
+      return fail("Não foi possível enviar o e-mail agora. Tente novamente em alguns minutos.", 502);
+    }
+    user.verificationEmailSentAt = new Date();
+    await user.save();
+    info(`Enviamos um novo link de confirmação para ${user.email}. Confira também o spam.`);
+  } catch (err) {
+    console.error(err);
+    fail("Erro ao reenviar o e-mail. Tente novamente.", 500);
+  }
+});
+
 router.get("/register", (req, res) => {
   if (req.session.user) return res.redirect("/");
   res.render("register", { title: "Criar Conta", errors: {}, form: {}, done: false });

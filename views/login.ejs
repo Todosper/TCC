@@ -41,6 +41,13 @@
           <%- icon('logIn', 16) %>
           Entrar
         </button>
+        <% if (typeof unverified !== 'undefined' && unverified) { %>
+          <p class="auth-footer-text">Não recebeu o e-mail? Digite sua senha acima e peça outro link.</p>
+          <button type="submit" formaction="/login/reenviar-confirmacao" class="btn btn-outline btn-lg btn-block">
+            <%- icon('mail', 16) %>
+            Reenviar e-mail de confirmação
+          </button>
+        <% } %>
       </form>
 
       <p class="auth-footer-text">

@@ -19,7 +19,8 @@
       if (size >= 80 && size <= 150 && size !== 100) d.style.fontSize = size + "%";
       if (get("a11y-contrast") === "1") d.classList.add("a11y-contrast");
       if (get("a11y-links") === "1") d.classList.add("a11y-links");
-      if (get("a11y-libras-visible") === "0") d.classList.add("a11y-libras-hidden");
+      // Libras: desativado por padrão; só aparece se a pessoa ativou no painel ("1").
+      if (get("a11y-libras-visible") !== "1") d.classList.add("a11y-libras-hidden");
     })();
   </script>
   <meta name="csrf-token" content="<%= csrfToken %>">
@@ -29,6 +30,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap"></noscript>
+  <% if (typeof cssBundleVersion !== 'undefined' && cssBundleVersion) { %>
+  <%# Produção: os 9 arquivos abaixo, juntados e minificados (ver helpers/cssBundle.js). %>
+  <link rel="stylesheet" href="/css/app.css?v=<%= cssBundleVersion %>">
+  <% } else { %>
   <link rel="stylesheet" href="/css/main.css?v=<%= v %>">
   <link rel="stylesheet" href="/css/navbar.css?v=<%= v %>">
   <link rel="stylesheet" href="/css/home.css?v=<%= v %>">
@@ -38,6 +43,7 @@
   <link rel="stylesheet" href="/css/admin.css?v=<%= v %>">
   <link rel="stylesheet" href="/css/suggestions.css?v=<%= v %>">
   <link rel="stylesheet" href="/css/accessibility.css?v=<%= v %>">
+  <% } %>
 </head>
 
 <body>
@@ -53,9 +59,9 @@
   <script>
     // VLibras (tradutor de Libras do governo federal). O script só é baixado
     // depois que a página terminou de carregar, para que o site não dependa do
-    // servidor do VLibras para responder. Se o botão de Libras estiver
-    // escondido nas preferências, o script nem é baixado; ele é carregado se a
-    // pessoa voltar a mostrar o botão (accessibility.js chama loadVLibras).
+    // servidor do VLibras para responder. O botão de Libras começa desativado:
+    // enquanto a pessoa não o ativar no painel de acessibilidade, o script nem é
+    // baixado (accessibility.js chama loadVLibras ao ativar).
     (function () {
       var state = null; // "loading" | "ready"
       function fail() {

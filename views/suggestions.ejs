@@ -54,6 +54,7 @@
               <% if (loggedIn) { %>
                 <form method="POST" action="/sugestoes/<%= s._id %>/apoio" data-support-form>
                   <%- include('partials/csrf-field') %>
+                  <% if (page > 1) { %><input type="hidden" name="page" value="<%= page %>"><% } %>
                   <button class="support-button <%= s.hasSupported ? 'supported' : '' %>" type="submit" aria-pressed="<%= s.hasSupported ? 'true' : 'false' %>"
                     title="<%= s.hasSupported ? 'Remover apoio' : 'Apoiar sugestão' %>" aria-label="Apoiar a sugestão “<%= s.title %>”">
                     <%- icon('thumbsUp', 15) %><span data-support-label><%= s.hasSupported ? 'Apoiando' : 'Apoiar' %></span>
@@ -68,5 +69,6 @@
         </article>
       <% }) %>
     </div>
+    <%- include('partials/pagination') %>
   <% } %>
 </div>

@@ -23,9 +23,12 @@ const reportSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// O primeiro índice atende a fila de moderação (por status e data); o segundo
-// atende a checagem de denúncia repetida da mesma pessoa sobre o mesmo conteúdo.
+// O primeiro índice atende a fila de moderação (por status e data). O segundo é
+// ÚNICO: o próprio banco impede que a mesma pessoa denuncie duas vezes o mesmo
+// conteúdo (comment = null identifica a denúncia do tópico em si), mesmo com
+// cliques simultâneos. Em bancos que já tinham este índice sem a regra de
+// unicidade, helpers/ensureIndexes.js remove as duplicatas e o recria.
 reportSchema.index({ status: 1, createdAt: -1 });
-reportSchema.index({ reporter: 1, topic: 1, comment: 1 });
+reportSchema.index({ reporter: 1, topic: 1, comment: 1 }, { unique: true });
 
 module.exports = mongoose.model("Report", reportSchema);

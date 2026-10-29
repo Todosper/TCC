@@ -12,6 +12,7 @@ const connectDB = require("./config/db");
 const { attachUser } = require("./middleware/auth");
 const icon = require("./config/icons");
 const { assetVersion } = require("./config/assets");
+const { buildCssBundle } = require("./helpers/cssBundle");
 const { catLabel, catCls } = require("./models/categories");
 const { doubleCsrfProtection, attachCsrfToken, invalidCsrfTokenError } = require("./middleware/csrf");
 
@@ -39,6 +40,14 @@ app.disable("x-powered-by");
 // ─── Variáveis disponíveis em todas as views ────────────────────────────────
 // Versão dos CSS/JS, usada pelo layout para montar /css/main.css?v=...
 app.locals.assetVersion = assetVersion;
+
+// Em produção, os 9 CSS saem como um único arquivo minificado (/css/app.css),
+// montado na subida a partir dos próprios arquivos de public/css, então nunca
+// fica desatualizado. Em desenvolvimento o layout continua usando os arquivos
+// separados (editar e atualizar a página funciona sem reiniciar). Para testar o
+// arquivo único localmente: BUNDLE_CSS=1 npm start.
+const cssBundle = isProduction || process.env.BUNDLE_CSS === "1" ? buildCssBundle() : null;
+app.locals.cssBundleVersion = cssBundle ? cssBundle.hash : null;
 app.locals.catLabel = catLabel;
 app.locals.catCls = catCls;
 app.locals.googleEnabled = require("./helpers/google").isConfigured();
@@ -104,6 +113,17 @@ app.use((req, res, next) => {
   next();
 });
 
+// ─── CSS único (produção) ────────────────────────────────────────────────────
+// A URL leva ?v=hash do conteúdo, então o cache longo é seguro (mesma ideia dos
+// arquivos estáticos abaixo).
+if (cssBundle) {
+  app.get("/css/app.css", (req, res) => {
+    res.type("text/css");
+    res.set("Cache-Control", isProduction ? "public, max-age=2592000, immutable" : "no-cache");
+    res.send(cssBundle.css);
+  });
+}
+
 // ─── Arquivos estáticos ──────────────────────────────────────────────────────
 // Ficam antes dos parsers, da sessão e do CSRF: um pedido de CSS/JS não precisa
 // passar por nada disso. Em produção o navegador guarda os arquivos por 30
@@ -117,7 +137,9 @@ app.use(
 app.get("/favicon.ico", (req, res) => res.status(204).end());
 
 // ─── Middlewares ─────────────────────────────────────────────────────────────
-app.use(express.urlencoded({ extended: true }));
+// extended: false usa o parser simples (querystring do Node): campos como
+// "a[b]=1" ou "a[]=1" chegam como texto comum, nunca como objeto ou lista.
+app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(cookieParser());
 app.use(methodOverride("_method"));

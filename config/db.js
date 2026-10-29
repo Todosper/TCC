@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { ensureIndexes } = require("../helpers/ensureIndexes");
 
 async function connectDB() {
   try {
@@ -8,6 +9,7 @@ async function connectDB() {
     }
     await mongoose.connect(uri);
     console.log("✅ Conectado ao MongoDB com sucesso.");
+    await ensureIndexes();
   } catch (err) {
     console.error("❌ Erro ao conectar ao MongoDB:", err.message);
     process.exit(1);
